@@ -1,3 +1,15 @@
 spring:
   application:
     name: ipai
+
+logging:
+  level:
+    root: INFO
+    com.aivle.ai0917.ipai: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  charset:
+    console: UTF-8
+
+app:
+  version: ${version}
