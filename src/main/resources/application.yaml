@@ -5,9 +5,9 @@ spring:
   # 데이터베이스 연결 설정
   datasource:
     # localhost:5432 뒤의 이름은 pgAdmin에서 확인한 데이터베이스 이름과 같아야 합니다.
-    url: jdbc:postgresql://localhost:5432/postgres
+    url: jdbc:postgresql://100.95.214.66:5432/postgres
     # 2. Username: 실제 사용자인 a085073으로 수정합니다.
-    username: a085073
+    username: a085162
     # 3. Password: 실제 비밀번호인 aivle202508로 수정합니다.
     password: aivle202508
     driver-class-name: org.postgresql.Driver
@@ -37,7 +37,16 @@ logging:
 app:
   version: ${version}
 
-  naver:
-    client-id: "mh9sg9YDttBxGB05kUHA"
-    client-secret: "2eV4B9VaXh"
-    redirect-uri: "http://localhost:8080/auth/naver/callback"
+
+naver:
+  client-id: "mh9sg9YDttBxGB05kUHA"
+  client-secret: "2eV4B9VaXh"
+  redirect-uri: "http://localhost:8080/auth/naver/callback"
+
+jwt:
+  # 운영에서는 환경변수로! 예: JWT_SECRET
+  secret: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+
+app-front:
+  callback-url: "http://localhost:8080"   # 프론트 주소에 맞게
