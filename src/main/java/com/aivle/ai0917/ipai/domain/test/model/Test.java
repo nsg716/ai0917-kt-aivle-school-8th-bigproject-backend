@@ -1,4 +1,4 @@
-package com.aivle.ai0917.ipai.entity;
+package com.aivle.ai0917.ipai.domain.test.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor  // JPA용 필수 기본 생성자
 @AllArgsConstructor // 모든 필드 생성자 (편의용)
-public class TestTable {
+public class Test {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

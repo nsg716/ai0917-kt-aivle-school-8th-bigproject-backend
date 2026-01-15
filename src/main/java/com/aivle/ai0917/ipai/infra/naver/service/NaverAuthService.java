@@ -1,9 +1,10 @@
-package com.aivle.ai0917.ipai.auth;
+package com.aivle.ai0917.ipai.infra.naver.service;
 
-import com.aivle.ai0917.ipai.model.NaverProfileResponse;
-import com.aivle.ai0917.ipai.model.NaverTokenResponse;
-import com.aivle.ai0917.ipai.model.User;
-import com.aivle.ai0917.ipai.repository.UserRepository;
+import com.aivle.ai0917.ipai.infra.naver.dto.NaverProfileDto;
+import com.aivle.ai0917.ipai.infra.naver.dto.NaverTokenDto;
+import com.aivle.ai0917.ipai.infra.naver.properties.NaverOAuthProperties;
+import com.aivle.ai0917.ipai.domain.user.model.User;
+import com.aivle.ai0917.ipai.domain.user.repository.UserRepository;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -62,7 +63,7 @@ public class NaverAuthService {
      */
     public User loginOrRegister(String code, String state) {
         String accessToken = getAccessToken(code, state);
-        NaverProfileResponse profileResponse = getProfile(accessToken);
+        NaverProfileDto profileResponse = getProfile(accessToken);
 
         var p = profileResponse.getProfile();
 
@@ -79,19 +80,21 @@ public class NaverAuthService {
                     user.setBirthYear(p.getBirthyear());
                     user.setBirthday(p.getBirthday());
                     user.setMobile(p.getMobile());
+                    user.setUpdatedAt(java.time.Instant.now());
                     return userRepository.save(user);
                 })
+                // NaverAuthService.java
                 .orElseGet(() -> {
-                    // 신규 사용자면 회원가입 처리
-                    User created = new User(
-                            naverId,
-                            p.getEmail(),
-                            p.getName(),
-                            p.getGender(),
-                            p.getBirthyear(),
-                            p.getBirthday(),
-                            p.getMobile()
-                    );
+                    User created = User.builder()
+                            .naverId(naverId)
+                            .email(p.getEmail())
+                            .name(p.getName())
+                            .gender(p.getGender())
+                            .birthYear(p.getBirthyear())
+                            .birthday(p.getBirthday())
+                            .mobile(p.getMobile())
+                            .role("Author") // 필드 이름을 명시하므로 훨씬 안전함
+                            .build();
                     return userRepository.save(created);
                 });
     }
@@ -106,12 +109,12 @@ public class NaverAuthService {
         form.add("code", code);
         form.add("state", state);
 
-        NaverTokenResponse tokenResponse = webClient.post()
+        NaverTokenDto tokenResponse = webClient.post()
                 .uri("https://nid.naver.com/oauth2.0/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .bodyValue(form)
                 .retrieve()
-                .bodyToMono(NaverTokenResponse.class)
+                .bodyToMono(NaverTokenDto.class)
                 .block();
 
         if (tokenResponse == null || tokenResponse.getAccessToken() == null) {
@@ -124,13 +127,13 @@ public class NaverAuthService {
     }
 
     /** access_token으로 사용자 정보 조회 */
-    private NaverProfileResponse getProfile(String accessToken) {
+    private NaverProfileDto getProfile(String accessToken) {
 
-        NaverProfileResponse profileResponse = webClient.get()
+        NaverProfileDto profileResponse = webClient.get()
                 .uri("https://openapi.naver.com/v1/nid/me")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                 .retrieve()
-                .bodyToMono(NaverProfileResponse.class)
+                .bodyToMono(NaverProfileDto.class)
                 .block();
 
         if (profileResponse == null || profileResponse.getProfile() == null) {

@@ -1,4 +1,4 @@
-package com.aivle.ai0917.ipai.auth;
+package com.aivle.ai0917.ipai.global.security;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;

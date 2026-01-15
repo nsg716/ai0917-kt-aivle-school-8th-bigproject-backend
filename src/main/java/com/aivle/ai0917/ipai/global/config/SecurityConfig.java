@@ -1,7 +1,7 @@
-package com.aivle.ai0917.ipai.security;
+package com.aivle.ai0917.ipai.global.config;
 
-import com.aivle.ai0917.ipai.auth.JwtAuthFilter;
-import com.aivle.ai0917.ipai.auth.JwtProvider;
+import com.aivle.ai0917.ipai.global.security.JwtAuthFilter;
+import com.aivle.ai0917.ipai.global.security.JwtProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -35,6 +35,7 @@ public class SecurityConfig {
                                 "/hello",
                                 "/auth/naver/login",
                                 "/auth/naver/callback",
+                                "/auth/naver/hello",
                                 "/login",
                                 "/api/test"
                         ).permitAll()

@@ -1,4 +1,4 @@
-package com.aivle.ai0917.ipai.model;
+package com.aivle.ai0917.ipai.infra.naver.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -9,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * GET https://openapi.naver.com/v1/nid/me
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class NaverProfileResponse {
+public class NaverProfileDto {
 
     private String resultcode;
     private String message;

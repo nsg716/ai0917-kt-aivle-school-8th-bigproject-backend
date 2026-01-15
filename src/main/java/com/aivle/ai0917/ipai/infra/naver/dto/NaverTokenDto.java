@@ -1,11 +1,11 @@
-package com.aivle.ai0917.ipai.model;
+package com.aivle.ai0917.ipai.infra.naver.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * 네이버 access_token 발급 응답 DTO
  */
-public class NaverTokenResponse {
+public class NaverTokenDto {
 
     @JsonProperty("access_token")
     private String accessToken;

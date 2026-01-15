@@ -1,6 +1,6 @@
-package com.aivle.ai0917.ipai.repository;
+package com.aivle.ai0917.ipai.domain.user.repository;
 
-import com.aivle.ai0917.ipai.model.User;
+import com.aivle.ai0917.ipai.domain.user.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

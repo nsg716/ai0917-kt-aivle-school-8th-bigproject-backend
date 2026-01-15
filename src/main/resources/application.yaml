@@ -45,7 +45,8 @@ naver:
 
 jwt:
   # 운영에서는 환경변수로! 예: JWT_SECRET
-  secret: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  secret: ${JWT_SECRET}
+  access-token-exp-minutes: 60
 
 
 app-front:

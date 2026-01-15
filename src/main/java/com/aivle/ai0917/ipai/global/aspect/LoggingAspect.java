@@ -1,4 +1,4 @@
-package com.aivle.ai0917.ipai.aspect;
+package com.aivle.ai0917.ipai.global.aspect;
 
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;

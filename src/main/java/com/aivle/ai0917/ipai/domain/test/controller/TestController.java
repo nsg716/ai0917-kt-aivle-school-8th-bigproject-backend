@@ -1,7 +1,7 @@
-package com.aivle.ai0917.ipai.controller;
+package com.aivle.ai0917.ipai.domain.test.controller;
 
-import com.aivle.ai0917.ipai.entity.TestTable;
-import com.aivle.ai0917.ipai.repository.TestRepository;
+import com.aivle.ai0917.ipai.domain.test.model.Test;
+import com.aivle.ai0917.ipai.domain.test.repository.TestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,7 +15,7 @@ public class TestController {
     private final TestRepository testRepository;
 
     @GetMapping("/api/test")
-    public List<TestTable> getAllData() {
+    public List<Test> getAllData() {
         // DB에 있는 모든 데이터를 조회해서 JSON 형태로 반환합니다.
         return testRepository.findAll();
     }
