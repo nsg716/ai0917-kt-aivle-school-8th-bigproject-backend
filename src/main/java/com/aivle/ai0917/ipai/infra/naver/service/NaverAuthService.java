@@ -1,5 +1,6 @@
 package com.aivle.ai0917.ipai.infra.naver.service;
 
+import com.aivle.ai0917.ipai.infra.naver.dto.NaverLoginResultDto;
 import com.aivle.ai0917.ipai.infra.naver.dto.NaverProfileDto;
 import com.aivle.ai0917.ipai.infra.naver.dto.NaverTokenDto;
 import com.aivle.ai0917.ipai.infra.naver.properties.NaverOAuthProperties;
@@ -14,6 +15,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -97,6 +99,53 @@ public class NaverAuthService {
                             .build();
                     return userRepository.save(created);
                 });
+    }
+    /**
+     * 네이버 로그인 처리 API (JSON 응답용)
+     * 로직: DB 저장 전 상태를 체크하여 신규/기존 여부를 정확히 판별
+     */
+    public NaverLoginResultDto loginOrRegisterWithStatus(String code, String state) {
+        String accessToken = getAccessToken(code, state);
+        NaverProfileDto profileResponse = getProfile(accessToken);
+        var p = profileResponse.getProfile();
+        String naverId = p.getId();
+
+        // 1. [핵심] DB에서 먼저 조회하여 '현재' 가입 여부를 확인합니다.
+        Optional<User> userOptional = userRepository.findByNaverId(naverId);
+
+        // 2. 이 시점에서 신규 회원 여부를 '확정' 짓습니다. (이후에 save를 해도 이 값은 변하지 않음)
+        boolean isNewMember = userOptional.isEmpty();
+
+        User user;
+        if (isNewMember) {
+            // [신규 회원] 가입에 필요한 엔티티 생성 (아직 DB 저장 전)
+            user = User.builder()
+                    .naverId(naverId)
+                    .email(p.getEmail())
+                    .name(p.getName())
+                    .gender(p.getGender())
+                    .birthYear(p.getBirthyear())
+                    .birthday(p.getBirthday())
+                    .mobile(p.getMobile())
+                    .role("Author")
+                    .build();
+        } else {
+            // [기존 회원] 기존 엔티티를 가져와서 최신 정보로 업데이트
+            user = userOptional.get();
+            user.setEmail(p.getEmail());
+            user.setName(p.getName());
+            user.setGender(p.getGender());
+            user.setBirthYear(p.getBirthyear());
+            user.setBirthday(p.getBirthday());
+            user.setMobile(p.getMobile());
+            user.setUpdatedAt(java.time.Instant.now());
+        }
+
+        // 3. 마지막에 DB에 반영 (신규면 Insert, 기존이면 Update)
+        User savedUser = userRepository.save(user);
+
+        // 4. 아까 2번 단계에서 확정해둔 isNewMember 플래그를 담아서 반환
+        return new NaverLoginResultDto(savedUser, isNewMember);
     }
 
     /** code로 access_token 발급 요청 */

@@ -2,6 +2,7 @@ package com.aivle.ai0917.ipai.domain.user.controller;
 
 
 import com.aivle.ai0917.ipai.global.security.jwt.JwtProvider;
+import com.aivle.ai0917.ipai.infra.naver.dto.NaverLoginResultDto;
 import com.aivle.ai0917.ipai.infra.naver.service.NaverAuthService;
 import com.aivle.ai0917.ipai.domain.user.model.User;
 import jakarta.servlet.http.HttpServletResponse;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -88,4 +90,41 @@ public class AuthController {
                 "email", user.getEmail()
         );
     }
+    /**
+     * 네이버 로그인 처리 API (JSON 응답)
+     * - 신규 회원: 이름, 성별, 생일, 출생연도, 휴대전화번호 반환
+     * - 기존 회원: 권한(role) 반환
+     */
+    @PostMapping("/user")
+    public Map<String, Object> callbackUserStatus(@RequestBody Map<String, String> body) {
+        String code = body.get("code");
+        String state = body.get("state");
+
+        // 서비스 호출 (신규 여부 포함된 결과)
+        NaverLoginResultDto result = naverAuthService.loginOrRegisterWithStatus(code, state);
+        User user = result.user();
+
+        // JWT 토큰 생성
+        String jwt = jwtProvider.createAccessToken(user.getId(), user.getRole());
+
+        // 응답 데이터 구성
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("accessToken", jwt);
+        responseData.put("isNewMember", result.isNewMember());
+
+        if (result.isNewMember()) {
+            // 신규 회원 전용 정보 추가
+            responseData.put("name", user.getName() != null ? user.getName() : "");
+            responseData.put("gender", user.getGender() != null ? user.getGender() : "");
+            responseData.put("birthday", user.getBirthday() != null ? user.getBirthday() : "");
+            responseData.put("birthYear", user.getBirthYear() != null ? user.getBirthYear() : "");
+            responseData.put("mobile", user.getMobile() != null ? user.getMobile() : "");
+        } else {
+            // 기존 회원 전용 정보 추가
+            responseData.put("role", user.getRole());
+        }
+
+        return responseData;
+    }
+
 }
