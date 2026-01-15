@@ -32,12 +32,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 네이버 로그인 시작/콜백은 누구나 접근 가능해야 함
                         .requestMatchers(
-                                "/hello",
-                                "/auth/naver/login",
-                                "/auth/naver/callback",
-                                "/auth/naver/hello",
-                                "/login",
-                                "/api/test"
+                                "/api/v1/hello",
+                                "/api/v1/auth/naver/login",
+                                "/api/v1/auth/naver/callback",
+                                "/api/v1/auth/naver/hello",
+                                "/api/v1/login",
+                                "/api/v1/api/test"
                         ).permitAll()
 
                         // 그 외는 인증 필요

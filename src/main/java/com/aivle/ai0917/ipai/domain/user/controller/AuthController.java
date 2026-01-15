@@ -24,7 +24,7 @@ import java.util.Map;
  * 5) 프론트 callback url로 토큰을 들고 redirect
  */
 @RestController
-@RequestMapping("/auth/naver")
+@RequestMapping("/api/v1/auth/naver")
 public class AuthController {
 
     private final NaverAuthService naverAuthService;

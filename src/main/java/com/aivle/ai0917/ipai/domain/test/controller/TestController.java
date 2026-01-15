@@ -4,12 +4,14 @@ import com.aivle.ai0917.ipai.domain.test.model.Test;
 import com.aivle.ai0917.ipai.domain.test.repository.TestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 @RestController
 @RequiredArgsConstructor // Repository를 자동으로 주입(Injection)해줍니다.
+@RequestMapping("/api/v1")
 public class TestController {
 
     private final TestRepository testRepository;
