@@ -39,7 +39,9 @@ out/
 # .gitignore
 
 # application-secret.yml 파일을 무시하도록 설정
-/application-secret.yml
+src/main/resources/application-secret.yaml
 
 # aplication-local.yaml 파일을 무시하도록 설정
-/application-local.yaml
+src/main/resources/application-local.yaml
+
+
