@@ -33,7 +33,3 @@ app:
   version: ${version}
 
 
-
-
-app-front:
-  callback-url: "http://localhost:8080"   # 프론트 주소에 맞게

@@ -10,5 +10,6 @@ spring:
     driver-class-name: org.postgresql.Driver
 
 
+
 app-front:
-  callback-url: "http://localhost:8080"   # 프론트 주소에 맞게
+  callback-url: "https://ai0917-kt-aivle-shool-8th-bigprojec-eta.vercel.app/"   # 프론트 주소에 맞게
