@@ -38,6 +38,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/naver/hello",
                                 "/api/v1/auth/naver/user",
                                 "/api/v1/login",
+                                "/api/v1/admin/notice/**",
                                 "/api/v1/api/test"
                         ).permitAll()
 

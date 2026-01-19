@@ -5,6 +5,10 @@ spring:
     import:
       - optional:classpath:application-secret.yaml
       - optional:classpath:application-local.yaml
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 
   # JPA 및 하이버네이트 설정
@@ -32,4 +36,6 @@ logging:
 app:
   version: ${version}
 
-
+# 파일 저장 경로
+file:
+  dir: C:/temp/upload/
