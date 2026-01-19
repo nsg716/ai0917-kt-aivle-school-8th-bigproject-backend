@@ -11,7 +11,7 @@ import java.time.Instant;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "users", indexes = {
         @Index(name = "idx_users_naver_id", columnList = "naverId", unique = true),
-        @Index(name = "idx_users_site_id", columnList = "siteId", unique = true)
+        @Index(name = "idx_users_email_id", columnList = "siteEmail", unique = true)
 })
 public class User {
 
@@ -24,8 +24,8 @@ public class User {
     private String naverId;
 
     /** 사이트 자체 로그인 아이디 (일반 사용자는 필수, 소셜 사용자는 null 허용) */
-    @Column(name = "site_id", unique = true, length = 50, nullable = true)
-    private String siteId;
+    @Column(name = "site_email", unique = true, length = 50, nullable = true)
+    private String siteEmail;
 
     /** 사이트 자체 로그인 비밀번호 (소셜 사용자는 null 허용) */
     @Column(name = "site_pwd", nullable = true)
@@ -46,10 +46,10 @@ public class User {
     private Instant updatedAt;
 
     @Builder
-    public User(String naverId, String siteId, String sitePwd, String email, String name,
+    public User(String naverId, String siteEmail, String sitePwd, String email, String name,
                 String gender, String birthYear, String birthday, String mobile, String role) {
         this.naverId = naverId;
-        this.siteId = siteId;
+        this.siteEmail = siteEmail;
         this.sitePwd = sitePwd;
         this.email = email;
         this.name = name;
