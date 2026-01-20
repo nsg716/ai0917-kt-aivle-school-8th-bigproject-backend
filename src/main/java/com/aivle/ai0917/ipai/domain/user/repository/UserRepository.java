@@ -1,6 +1,9 @@
 package com.aivle.ai0917.ipai.domain.user.repository;
 
+import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
 import com.aivle.ai0917.ipai.domain.user.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -30,4 +33,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Integer countActiveUsersBetween(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
+
+
+
+
 }

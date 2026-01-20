@@ -30,7 +30,7 @@ public class DataCollectionScheduler {
     private final DailyActiveUserRepository dauRepository;
     private final UserRepository userRepository;
 
-    //시스템 리소스 메트릭 수집
+    // 시스템 리소스 메트릭 수집
     // 5분마다 실행 (cron: 0 */5 * * * *)
 
     @Scheduled(cron = "0 */5 * * * *")

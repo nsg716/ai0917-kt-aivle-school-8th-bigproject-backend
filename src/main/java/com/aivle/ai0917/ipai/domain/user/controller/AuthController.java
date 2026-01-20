@@ -62,7 +62,7 @@ public class AuthController {
         User user = naverAuthService.loginOrRegister(code, state);
 
         // 우리 서비스 JWT 발급
-        String jwt = jwtProvider.createAccessToken(user.getId(), user.getRole());
+        String jwt = jwtProvider.createAccessToken(user.getId(), String.valueOf(user.getRole()));
 
         // 프론트로 redirect + token 전달(간단 버전)
         // 운영에서는 보통 HttpOnly 쿠키 방식 추천
@@ -81,7 +81,7 @@ public class AuthController {
         String state = body.get("state");
 
         User user = naverAuthService.loginOrRegister(code, state);
-        String jwt = jwtProvider.createAccessToken(user.getId(), user.getRole());
+        String jwt = jwtProvider.createAccessToken(user.getId(), String.valueOf(user.getRole()));
 
         return Map.of(
                 "accessToken", jwt,
@@ -105,7 +105,7 @@ public class AuthController {
         User user = result.user();
 
         // JWT 토큰 생성
-        String jwt = jwtProvider.createAccessToken(user.getId(), user.getRole());
+        String jwt = jwtProvider.createAccessToken(user.getId(), String.valueOf(user.getRole()));
 
         // 응답 데이터 구성
         Map<String, Object> responseData = new HashMap<>();

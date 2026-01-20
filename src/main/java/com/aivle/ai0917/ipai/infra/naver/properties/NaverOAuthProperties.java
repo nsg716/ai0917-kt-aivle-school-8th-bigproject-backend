@@ -1,6 +1,8 @@
 package com.aivle.ai0917.ipai.infra.naver.properties;
 
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -8,6 +10,8 @@ import org.springframework.stereotype.Component;
  * application.yaml의 naver.* 설정을 읽어오는 클래스
  */
 @Component
+@Getter
+@Setter
 @ConfigurationProperties(prefix = "naver")
 public class NaverOAuthProperties {
 

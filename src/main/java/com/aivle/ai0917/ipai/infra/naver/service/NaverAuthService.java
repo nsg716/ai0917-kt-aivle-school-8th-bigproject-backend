@@ -1,11 +1,13 @@
 package com.aivle.ai0917.ipai.infra.naver.service;
 
+import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
 import com.aivle.ai0917.ipai.infra.naver.dto.NaverLoginResultDto;
 import com.aivle.ai0917.ipai.infra.naver.dto.NaverProfileDto;
 import com.aivle.ai0917.ipai.infra.naver.dto.NaverTokenDto;
 import com.aivle.ai0917.ipai.infra.naver.properties.NaverOAuthProperties;
 import com.aivle.ai0917.ipai.domain.user.model.User;
 import com.aivle.ai0917.ipai.domain.user.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -21,7 +23,6 @@ import java.util.UUID;
 
 /**
  * 네이버 OAuth2 로그인 처리 서비스
- *
  * 처리 흐름:
  * 1) 네이버 로그인 URL 생성(redirect)
  * 2) callback에서 code/state 받음
@@ -64,6 +65,7 @@ public class NaverAuthService {
      * 네이버 로그인 완료 후 callback에서 호출되는 핵심 로직
      * - 사용자 정보 조회 후 DB 저장/갱신
      */
+    @Transactional
     public User loginOrRegister(String code, String state) {
         String accessToken = getAccessToken(code, state);
         NaverProfileDto profileResponse = getProfile(accessToken);
@@ -96,7 +98,7 @@ public class NaverAuthService {
                             .birthYear(p.getBirthyear())
                             .birthday(p.getBirthday())
                             .mobile(p.getMobile())
-                            .role("Author") // 필드 이름을 명시하므로 훨씬 안전함
+                            .role(UserRole.valueOf("Author")) // 필드 이름을 명시하므로 훨씬 안전함
                             .build();
                     return userRepository.save(created);
                 });
@@ -128,7 +130,7 @@ public class NaverAuthService {
                     .birthYear(p.getBirthyear())
                     .birthday(p.getBirthday())
                     .mobile(p.getMobile())
-                    .role("Author")
+                    .role(UserRole.valueOf("Author"))
                     .build();
         } else {
             // [기존 회원] 기존 엔티티를 가져와서 최신 정보로 업데이트

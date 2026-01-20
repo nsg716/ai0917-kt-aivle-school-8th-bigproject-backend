@@ -1,5 +1,6 @@
 package com.aivle.ai0917.ipai.domain.user.model;
 
+import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -38,7 +39,8 @@ public class User {
     private String birthday;
     private String mobile;
 
-    private String role = "Author";
+    @Enumerated(EnumType.STRING)
+    private UserRole role = UserRole.Author;
 
     @Column(updatable = false)
     private LocalDateTime createdAt;
@@ -47,7 +49,7 @@ public class User {
 
     @Builder
     public User(String naverId, String siteEmail, String sitePwd, String email, String name,
-                String gender, String birthYear, String birthday, String mobile, String role) {
+                String gender, String birthYear, String birthday, String mobile, UserRole role, LocalDateTime createdAt, LocalDateTime updatedAt ) {
         this.naverId = naverId;
         this.siteEmail = siteEmail;
         this.sitePwd = sitePwd;
@@ -57,7 +59,9 @@ public class User {
         this.birthYear = birthYear;
         this.birthday = birthday;
         this.mobile = mobile;
-        this.role = (role != null) ? role : "Author";
+        this.role = (role != null) ? role : UserRole.Author;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     @PrePersist
@@ -68,6 +72,12 @@ public class User {
 
     @PreUpdate
     protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // 비즈니스 로직: 권한 수정
+    public void updateAccess(UserRole role) {
+        this.role = role;
         this.updatedAt = LocalDateTime.now();
     }
 }
