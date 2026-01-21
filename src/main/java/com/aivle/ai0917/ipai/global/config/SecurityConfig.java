@@ -31,7 +31,10 @@ public class SecurityConfig {
                         // OAuth 콜백은 GET이라 보통 CSRF 영향 없음.
                         // 필요하면 특정 경로만 ignore도 가능 (원하면 아래처럼)
                         // .ignoringRequestMatchers("/api/v1/auth/naver/**")
-                        .ignoringRequestMatchers("/api/v1/signup/naver/complete")
+                        .ignoringRequestMatchers(
+                                "/api/v1/signup/naver/complete",
+                                "/api/v1/admin/sysnotice/**"
+                        )
                 )
 
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -40,7 +43,16 @@ public class SecurityConfig {
                         // 공개 API만 정확히 오픈
                         .requestMatchers(
                                 "/api/v1/hello",
-                                "/api/v1/api/test"
+                                "/api/v1/api/test",
+
+                                "/api/v1/auth/naver/hello",
+                                "/api/v1/auth/naver/user",
+                                "/api/v1/login",
+                                "/api/v1/api/test",
+
+                                "/api/v1/admin/notice/**",
+                                "/api/v1/admin/dashboard/**",
+                                "/api/v1/admin/access/**"
                         ).permitAll()
 
                         // 네이버 OAuth 시작/콜백은 공개

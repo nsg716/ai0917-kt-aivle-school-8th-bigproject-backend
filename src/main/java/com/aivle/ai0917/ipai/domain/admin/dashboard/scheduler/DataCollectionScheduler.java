@@ -1,11 +1,16 @@
 package com.aivle.ai0917.ipai.domain.admin.dashboard.scheduler;
 
 import com.aivle.ai0917.ipai.domain.admin.dashboard.model.DailyActiveUser;
+import com.aivle.ai0917.ipai.domain.admin.dashboard.model.SystemLog;
 import com.aivle.ai0917.ipai.domain.admin.dashboard.model.SystemMetric;
 import com.aivle.ai0917.ipai.domain.admin.dashboard.repository.DailyActiveUserRepository;
+import com.aivle.ai0917.ipai.domain.admin.dashboard.repository.SystemLogRepository;
 import com.aivle.ai0917.ipai.domain.admin.dashboard.repository.SystemMetricRepository;
 
+import com.aivle.ai0917.ipai.domain.admin.info.dto.UnifiedAdminNoticeDto;
+import com.aivle.ai0917.ipai.domain.admin.info.service.AdminNoticeService;
 import com.aivle.ai0917.ipai.domain.user.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.management.OperatingSystemMXBean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +20,8 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.time.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 대시보드 데이터 자동 수집 스케줄러
@@ -29,10 +36,19 @@ public class DataCollectionScheduler {
     private final SystemMetricRepository systemMetricRepository;
     private final DailyActiveUserRepository dauRepository;
     private final UserRepository userRepository;
+    private final SystemLogRepository systemLogRepository;
+    private final AdminNoticeService adminNoticeService;
+    private final ObjectMapper objectMapper;
 
+
+    /**
+     * 시스템 리소스 메트릭 수집 (5분마다)
+     * - 메트릭 수집 및 저장
+     * - 임계치 초과 시 SystemLog에 저장 (기존 로직 유지)
+     * - 임계치 초과 시 실시간 SSE 알림 전송 (신규)
+     */
     // 시스템 리소스 메트릭 수집
     // 5분마다 실행 (cron: 0 */5 * * * *)
-
     @Scheduled(cron = "0 */5 * * * *")
     public void collectSystemMetrics() {
         try {
@@ -61,6 +77,40 @@ public class DataCollectionScheduler {
                     ? ((double)(totalSpace - freeSpace) / totalSpace) * 100.0
                     : 0.0;
 
+            // 임계치 체크 (예: 90% 이상일 때 에러 로그 생성)
+            if (cpuUsage > 90.0 || memoryUsage > 90.0 || storageUsage > 90.0) {
+                // 1. SystemLog에 저장 (기존 로직 유지)
+                String logMessage = String.format("리소스 임계치 초과! CPU: %.2f%%, RAM: %.2f%%, Storage: %.2f%%",
+                        cpuUsage, memoryUsage, storageUsage);
+
+                SystemLog criticalLog = SystemLog.builder()
+                        .level("WARNING")
+                        .category("RESOURCE_CRITICAL")
+                        .message(logMessage)
+                        .timestamp(LocalDateTime.now())
+                        .isRead(false)
+                        .build();
+
+                SystemLog savedLog = systemLogRepository.save(criticalLog);
+                log.warn("Critical resource threshold exceeded - SystemLog saved: id={}", savedLog.getId());
+
+                // 2. 메타데이터 생성
+                String metadata = buildMetadata(cpuUsage, memoryUsage, storageUsage);
+
+                // 3. 실시간 알림 전송 (신규 - admin_notices에도 저장됨)
+                try {
+                    adminNoticeService.sendSystemMetricAlert(
+                            "RESOURCE_CRITICAL",
+                            logMessage,
+                            metadata
+                    );
+                    log.info("Real-time metric alert sent via SSE");
+                } catch (Exception e) {
+                    log.error("Failed to send real-time metric alert", e);
+                }
+            }
+
+            // 메트릭 저장 (기존 로직 유지)
             SystemMetric metric = SystemMetric.builder()
                     .cpuUsage(Math.round(cpuUsage * 100.0) / 100.0)
                     .memoryUsage(Math.round(memoryUsage * 100.0) / 100.0)
@@ -78,50 +128,51 @@ public class DataCollectionScheduler {
     }
 
     /**
+     * 메타데이터 JSON 생성
+     */
+    private String buildMetadata(double cpu, double memory, double storage) {
+        try {
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("cpuUsage", Math.round(cpu * 100.0) / 100.0);
+            metadata.put("cpuThreshold", 90.0);
+            metadata.put("memoryUsage", Math.round(memory * 100.0) / 100.0);
+            metadata.put("memoryThreshold", 90.0);
+            metadata.put("storageUsage", Math.round(storage * 100.0) / 100.0);
+            metadata.put("storageThreshold", 85.0);
+            metadata.put("timestamp", LocalDateTime.now().toString());
+
+            return objectMapper.writeValueAsString(metadata);
+        } catch (Exception e) {
+            log.error("Failed to build metadata JSON", e);
+            return "{}";
+        }
+    }
+
+    /**
      * 일일 활성 사용자(DAU) 계산
      * 매일 자정 00:05에 실행 (전날 데이터 집계)
      */
     @Scheduled(cron = "0 5 0 * * *")
     public void calculateDailyActiveUsers() {
         try {
-            log.info("Calculating Daily Active Users...");
+            LocalDate yesterday = LocalDate.now().minusDays(1);
+            LocalDateTime start = yesterday.atStartOfDay();
+            LocalDateTime end = yesterday.atTime(23, 59, 59);
 
-            // Instant로 어제 날짜의 시작과 끝 계산
-            ZoneId zoneId = ZoneId.systemDefault();
-            Instant now = Instant.now();
+            // 1. UserRepository를 통해 users 테이블에서 전날 활동 유저 수 집계
+            Integer activeUserCount = userRepository.countActiveUsersBetween(start, end);
 
-            // 어제 날짜
-            ZonedDateTime yesterdayZoned = now.atZone(zoneId).minusDays(1);
-
-            // 어제의 00:00:00
-            Instant startOfDay = yesterdayZoned.toLocalDate()
-                    .atStartOfDay(zoneId)
-                    .toInstant();
-
-            // 어제의 23:59:59
-            Instant endOfDay = yesterdayZoned.toLocalDate()
-                    .atTime(23, 59, 59)
-                    .atZone(zoneId)
-                    .toInstant();
-
-            // LocalDateTime으로 변환하여 Repository 쿼리 호출
-            LocalDateTime startDateTime = LocalDateTime.ofInstant(startOfDay, zoneId);
-            LocalDateTime endDateTime = LocalDateTime.ofInstant(endOfDay, zoneId);
-
-            // 전날 활성 사용자 수 계산
-            Integer activeUserCount = userRepository.countActiveUsersBetween( startDateTime, endDateTime);
-
+            // 2. 통계 테이블(DailyActiveUser)에 저장
             DailyActiveUser dau = DailyActiveUser.builder()
-                    .date(startDateTime)
+                    .date(start)
                     .count(activeUserCount)
                     .createdAt(LocalDateTime.now())
                     .build();
 
             dauRepository.save(dau);
-            log.info("DAU saved: Date={}, Count={}", startDateTime.toLocalDate(), activeUserCount);
-
+            log.info("Successfully aggregated DAU for {}: {}", yesterday, activeUserCount);
         } catch (Exception e) {
-            log.error("Failed to calculate DAU", e);
+            log.error("Failed to aggregate DAU", e);
         }
     }
 
