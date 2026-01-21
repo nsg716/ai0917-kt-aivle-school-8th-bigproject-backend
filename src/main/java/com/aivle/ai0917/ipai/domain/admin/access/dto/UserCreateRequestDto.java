@@ -13,9 +13,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserCreateRequestDto {
     private String name;
-    private String email;
+    private String mobile;
+    private UserRole role;
     private String siteEmail;
     private String sitePwd;
-    private UserRole role;
-    private String mobile;
 }

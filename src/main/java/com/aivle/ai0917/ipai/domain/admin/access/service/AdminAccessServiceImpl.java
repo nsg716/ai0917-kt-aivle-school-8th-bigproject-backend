@@ -68,7 +68,6 @@ public class AdminAccessServiceImpl implements AdminAccessService {
     public void createUser(UserCreateRequestDto request) {
         User user = User.builder()
                 .name(request.getName())
-                .email(request.getEmail())
                 .siteEmail(request.getSiteEmail())
                 .sitePwd(request.getSitePwd()) // 실제론 PasswordEncoder 사용 권장
                 .role(request.getRole())
