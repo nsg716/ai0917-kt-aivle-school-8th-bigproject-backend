@@ -5,10 +5,6 @@ spring:
     import:
       - optional:classpath:application-secret.yaml
       - optional:classpath:application-local.yaml
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
 
 
   # JPA 및 하이버네이트 설정
@@ -25,6 +21,7 @@ spring:
 # 로그 설정 (사용자 기존 설정 유지)
 logging:
   level:
+    org.springframework.security: DEBUG
     root: INFO
     com.aivle.ai0917.ipai: DEBUG
   pattern:
@@ -36,6 +33,10 @@ logging:
 app:
   version: ${version}
 
-# 파일 저장 경로
-file:
-  dir: C:/temp/upload/
+
+server:
+  tomcat:
+    accesslog:
+      enabled: true
+
+

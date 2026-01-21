@@ -1,13 +1,11 @@
 package com.aivle.ai0917.ipai.infra.naver.service;
 
-import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
 import com.aivle.ai0917.ipai.infra.naver.dto.NaverLoginResultDto;
 import com.aivle.ai0917.ipai.infra.naver.dto.NaverProfileDto;
 import com.aivle.ai0917.ipai.infra.naver.dto.NaverTokenDto;
 import com.aivle.ai0917.ipai.infra.naver.properties.NaverOAuthProperties;
 import com.aivle.ai0917.ipai.domain.user.model.User;
 import com.aivle.ai0917.ipai.domain.user.repository.UserRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -17,12 +15,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
  * 네이버 OAuth2 로그인 처리 서비스
+ *
  * 처리 흐름:
  * 1) 네이버 로그인 URL 생성(redirect)
  * 2) callback에서 code/state 받음
@@ -34,12 +32,12 @@ import java.util.UUID;
 public class NaverAuthService {
 
     private final NaverOAuthProperties props;
-    private final UserRepository userRepository;
+    //private final UserRepository userRepository;
     private final WebClient webClient;
 
     public NaverAuthService(NaverOAuthProperties props, UserRepository userRepository) {
         this.props = props;
-        this.userRepository = userRepository;
+        //this.userRepository = userRepository;
         this.webClient = WebClient.builder().build();
     }
 
@@ -48,7 +46,6 @@ public class NaverAuthService {
 
         // CSRF 공격 방지용 state 값 (정석은 서버에 저장해두고 callback에서 비교)
         String state = UUID.randomUUID().toString();
-
         String redirect = URLEncoder.encode(props.getRedirectUri(), StandardCharsets.UTF_8);
 
         String url =
@@ -64,8 +61,7 @@ public class NaverAuthService {
     /**
      * 네이버 로그인 완료 후 callback에서 호출되는 핵심 로직
      * - 사용자 정보 조회 후 DB 저장/갱신
-     */
-    @Transactional
+     *//*
     public User loginOrRegister(String code, String state) {
         String accessToken = getAccessToken(code, state);
         NaverProfileDto profileResponse = getProfile(accessToken);
@@ -85,7 +81,7 @@ public class NaverAuthService {
                     user.setBirthYear(p.getBirthyear());
                     user.setBirthday(p.getBirthday());
                     user.setMobile(p.getMobile());
-                    user.setUpdatedAt(LocalDateTime.now());
+                    user.setUpdatedAt(java.time.Instant.now());
                     return userRepository.save(user);
                 })
                 // NaverAuthService.java
@@ -98,15 +94,15 @@ public class NaverAuthService {
                             .birthYear(p.getBirthyear())
                             .birthday(p.getBirthday())
                             .mobile(p.getMobile())
-                            .role(UserRole.valueOf("Author")) // 필드 이름을 명시하므로 훨씬 안전함
+                            .role("Author") // 필드 이름을 명시하므로 훨씬 안전함
                             .build();
                     return userRepository.save(created);
                 });
-    }
+    }*/
     /**
      * 네이버 로그인 처리 API (JSON 응답용)
      * 로직: DB 저장 전 상태를 체크하여 신규/기존 여부를 정확히 판별
-     */
+     *//*
     public NaverLoginResultDto loginOrRegisterWithStatus(String code, String state) {
         String accessToken = getAccessToken(code, state);
         NaverProfileDto profileResponse = getProfile(accessToken);
@@ -130,7 +126,7 @@ public class NaverAuthService {
                     .birthYear(p.getBirthyear())
                     .birthday(p.getBirthday())
                     .mobile(p.getMobile())
-                    .role(UserRole.valueOf("Author"))
+                    .role("Author")
                     .build();
         } else {
             // [기존 회원] 기존 엔티티를 가져와서 최신 정보로 업데이트
@@ -141,7 +137,7 @@ public class NaverAuthService {
             user.setBirthYear(p.getBirthyear());
             user.setBirthday(p.getBirthday());
             user.setMobile(p.getMobile());
-            user.setUpdatedAt(LocalDateTime.now());
+            user.setUpdatedAt(java.time.Instant.now());
         }
 
         // 3. 마지막에 DB에 반영 (신규면 Insert, 기존이면 Update)
@@ -149,6 +145,12 @@ public class NaverAuthService {
 
         // 4. 아까 2번 단계에서 확정해둔 isNewMember 플래그를 담아서 반환
         return new NaverLoginResultDto(savedUser, isNewMember);
+    }*/
+
+    public NaverProfileDto.Profile fetchProfile(String code, String state) {
+        String accessToken = getAccessToken(code, state);
+        NaverProfileDto profileResponse = getProfile(accessToken);
+        return profileResponse.getProfile();
     }
 
     /** code로 access_token 발급 요청 */

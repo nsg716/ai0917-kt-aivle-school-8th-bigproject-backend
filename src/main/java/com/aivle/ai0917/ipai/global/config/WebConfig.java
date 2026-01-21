@@ -11,13 +11,12 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOriginPatterns(
-                        "http://localhost:5173",
-                        "https://ai0917-kt-aivle-shool-8th-bigprojec-eta.vercel.app"
+                        "http://localhost:5173"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                 .allowedHeaders("*")
                 .maxAge(3600)
          //쿠키/세션을 쓰는 경우만 allowCredentials(true) 추가
-        .allowCredentials(true);
+                .allowCredentials(true);
     }
 }

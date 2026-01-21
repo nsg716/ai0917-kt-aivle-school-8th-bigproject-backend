@@ -4,57 +4,64 @@ import com.aivle.ai0917.ipai.global.security.jwt.JwtAuthFilter;
 import com.aivle.ai0917.ipai.global.security.jwt.JwtProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.config.Customizer;
 
-/**
- * 프론트 분리(React 등) + 백엔드 API 서버라면:
- * - formLogin(서버 렌더링) X
- * - 세션 X (stateless)
- * - JWT 인증 필터로 보호
- */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtProvider jwtProvider) throws Exception {
-        http
-                // API 서버에서는 보통 CSRF 비활성화(세션 쿠키 기반이 아닐 경우)
-                .csrf(csrf -> csrf.disable())
 
-                // 세션을 만들지 않음(매 요청 JWT로 인증)
+        http
+                // CORS는 WebMvcConfigurer 설정을 따르도록 켜주는 게 안전
+                .cors(Customizer.withDefaults())
+
+                // ✅ HttpOnly 쿠키 인증이면 CSRF 켜는 것을 권장
+                // 프론트는 XSRF-TOKEN 쿠키를 읽어서 X-XSRF-TOKEN 헤더로 보내면 됨
+                .csrf(csrf -> csrf
+                                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        // OAuth 콜백은 GET이라 보통 CSRF 영향 없음.
+                        // 필요하면 특정 경로만 ignore도 가능 (원하면 아래처럼)
+                        // .ignoringRequestMatchers("/api/v1/auth/naver/**")
+                        .ignoringRequestMatchers("/api/v1/signup/naver/complete")
+                )
+
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
-                        // 네이버 로그인 시작/콜백은 누구나 접근 가능해야 함
+                        // 공개 API만 정확히 오픈
                         .requestMatchers(
                                 "/api/v1/hello",
-                                "/api/v1/auth/naver/login",
-                                "/api/v1/auth/naver/callback",
-                                "/api/v1/auth/naver/hello",
-                                "/api/v1/auth/naver/user",
-                                "/api/v1/login",
-                                "/api/v1/api/test",
-
-                                "/api/v1/admin/notice/**",
-                                "/api/v1/admin/dashboard/**",
-                                "/api/v1/admin/access/**"
-
+                                "/api/v1/api/test"
                         ).permitAll()
+
+                        // 네이버 OAuth 시작/콜백은 공개
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/auth/naver/login",
+                                "/api/v1/auth/naver/callback"
+                        ).permitAll()
+
+                        // signup 진행(이메일 인증/가입완료)은 공개지만 CSRF 토큰은 요구될 수 있음
+                        .requestMatchers("/api/v1/signup/**").permitAll()
+
+                        // 네가 확정한 auth/me 도 공개로 둘지, 인증 필요로 둘지 정책 선택
+                        // - pendingSignup 용도면 공개 OK (쿠키 없으면 에러)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").permitAll()
 
                         // 그 외는 인증 필요
                         .anyRequest().authenticated()
                 )
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable());
 
-                // formLogin 비활성화(프론트 분리형에서는 사용 안 함)
-                .formLogin(form -> form.disable());
-
-        // JWT 인증 필터를 UsernamePasswordAuthenticationFilter 전에 넣어서
-        // 토큰이 있으면 먼저 인증이 잡히도록 함
         http.addFilterBefore(new JwtAuthFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
