@@ -62,35 +62,24 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
     @Override
     public DauResponseDto getDauData() {
         LocalDate today = LocalDate.now();
-        LocalDate yesterday = today.minusDays(1);
         LocalDate sevenDaysAgo = today.minusDays(7);
 
-        // 1. 오늘 DAU (LocalDateTime으로 전달)
-        LocalDateTime todayStart = today.atStartOfDay();
-        Integer todayDau = dauRepository.findByDate(todayStart)
+        // 💡 오늘 DAU는 아직 스케줄러가 돌기 전이므로 users 테이블에서 실시간 집계
+        Integer todayDau = userRepository.countActiveUsersBetween(today.atStartOfDay(), LocalDateTime.now());
+
+        // 어제 DAU (통계 테이블 조회)
+        Integer yesterdayDau = dauRepository.findByDate(today.minusDays(1).atStartOfDay())
                 .map(DailyActiveUser::getCount)
                 .orElse(0);
 
-        // 2. 어제 DAU
-        LocalDateTime yesterdayStart = yesterday.atStartOfDay();
-        Integer yesterdayDau = dauRepository.findByDate(yesterdayStart)
-                .map(DailyActiveUser::getCount)
-                .orElse(0);
-
-        // 3. 7일 평균 및 데이터 조회 (범위를 LocalDateTime으로 설정)
+        // 7일 데이터 및 평균
         LocalDateTime start = sevenDaysAgo.atStartOfDay();
-        LocalDateTime end = today.atTime(23, 59, 59);
+        LocalDateTime end = LocalDateTime.now();
+        Double average = dauRepository.calculateAverageByDateRange(start, end);
 
-        Double sevenDayAverage = dauRepository.calculateAverageByDateRange(start, end);
-        if (sevenDayAverage == null) {
-            sevenDayAverage = 0.0;
-        }
-
-        List<DailyActiveUser> recentData = dauRepository.findByDateBetweenOrderByDateDesc(start, end);
-
-        List<DailyDauDto> dailyData = recentData.stream()
+        List<DailyDauDto> dailyData = dauRepository.findByDateBetweenOrderByDateDesc(start, end).stream()
                 .map(dau -> DailyDauDto.builder()
-                        .date(dau.getDate().toLocalDate().toString()) // LocalDateTime -> String
+                        .date(dau.getDate().toLocalDate().toString())
                         .count(dau.getCount())
                         .build())
                 .collect(Collectors.toList());
@@ -98,7 +87,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
         return DauResponseDto.builder()
                 .today(todayDau)
                 .yesterday(yesterdayDau)
-                .sevenDayAverage(Math.round(sevenDayAverage * 100.0) / 100.0)
+                .sevenDayAverage(average != null ? Math.round(average * 10.0) / 10.0 : 0.0)
                 .dailyData(dailyData)
                 .build();
     }
