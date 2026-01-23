@@ -58,4 +58,9 @@ public class EmailVerificationService {
     }
 
     private record CodeEntry(String code, Instant expiresAt, boolean verified) {}
+
+    //재사용 방지
+    public void invalidate(String email) {
+        store.remove(email);
+    }
 }

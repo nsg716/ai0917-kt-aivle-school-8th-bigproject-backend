@@ -4,6 +4,7 @@ import com.aivle.ai0917.ipai.domain.user.model.User;
 import com.aivle.ai0917.ipai.domain.user.repository.UserRepository;
 import com.aivle.ai0917.ipai.global.utils.Base62Util;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,9 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
 
+    // ✅ 추가: 비밀번호 인코딩은 Service에서 담당
+    private final PasswordEncoder passwordEncoder;
+
     @Override
     public Optional<User> getUserByIntegrationId(String integrationId) {
         return userRepository.findByIntegrationId(integrationId);
@@ -26,6 +30,29 @@ public class UserServiceImpl implements UserService {
     public boolean existsBySiteEmail(String siteEmail) {
         return userRepository.existsBySiteEmail(siteEmail);
     }
+    // ✅ 추가
+    @Override
+    public Optional<User> getUserByNameAndSiteEmail(String name, String siteEmail) {
+        return userRepository.findByNameAndSiteEmail(name, siteEmail);
+    }
+
+    // ✅ 추가
+    @Override
+    public Optional<User> getUserBySiteEmail(String siteEmail) {
+        return userRepository.findBySiteEmail(siteEmail);
+    }
+
+    // ✅ 추가: 비번 변경은 트랜잭션으로 묶어서 안전하게
+    @Override
+    @Transactional
+    public void updateSitePassword(String siteEmail, String rawNewPassword) {
+        User user = userRepository.findBySiteEmail(siteEmail)
+                .orElseThrow(() -> new RuntimeException("해당 이메일의 사용자를 찾을 수 없습니다."));
+
+        user.setSitePwd(passwordEncoder.encode(rawNewPassword));
+        userRepository.save(user);
+    }
+
 
     @Override
     @Transactional

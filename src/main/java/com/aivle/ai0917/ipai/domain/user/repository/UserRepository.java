@@ -21,6 +21,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsBySiteEmail(String siteEmail);
 
+    Optional<User> findByNameAndSiteEmail(String name, String siteEmail);
+
 
 
     // 전체 사용자 수
