@@ -11,9 +11,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.aivle.ai0917.ipai.domain.author.dashboard.model.Work;
-import com.aivle.ai0917.ipai.domain.author.dashboard.model.WorkStatus;
-import com.aivle.ai0917.ipai.domain.author.dashboard.repository.WorkRepository;
+import com.aivle.ai0917.ipai.domain.author.works.model.Work;
+import com.aivle.ai0917.ipai.domain.author.works.model.WorkStatus;
+import com.aivle.ai0917.ipai.domain.author.works.repository.WorkRepository;
 import com.aivle.ai0917.ipai.domain.user.model.User;
 import com.aivle.ai0917.ipai.domain.user.repository.UserRepository;
 
@@ -32,23 +32,6 @@ public class DashboardServiceImpl implements DashboardService {
     private final UserRepository userRepository;
 
 
-    //    @Override
-//    public DashboardSummaryResponseDto getDashboardSummary(String authorId) {
-//        // 뷰 집계
-//        // 나중에 수백만건 이상인 경우 Redis를 사용하는 것을 검토
-//        // 뷰에서 해당 작가의 통계 한 줄을 가져옴
-//        return statsRepository.findByAuthorId(authorId)
-//                .map(stats -> DashboardSummaryResponseDto.builder()
-//                        .ongoingCount(stats.getOngoingCount())
-//                        .settingBookCount(stats.getSettingBookCount())
-//                        .completedCount(stats.getCompletedCount())
-//                        .build())
-//                .orElseGet(() -> DashboardSummaryResponseDto.builder() // 데이터 없을 시 0 반환
-//                        .ongoingCount(0)
-//                        .settingBookCount(0)
-//                        .completedCount(0)
-//                        .build());
-//    }
         @Override
         public DashboardSummaryResponseDto getDashboardSummary(String integrationId) {
             // author_id(users.id)로 조회하여 이름 중복 문제를 해결합니다.

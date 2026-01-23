@@ -33,7 +33,8 @@ public class SecurityConfig {
                         // .ignoringRequestMatchers("/api/v1/auth/naver/**")
                         .ignoringRequestMatchers(
                                 "/api/v1/signup/naver/complete",
-                                "/api/v1/admin/sysnotice/**"
+                                "/api/v1/admin/sysnotice/**",
+                                "/api/v1/**"
                         )
                 )
 
@@ -55,7 +56,8 @@ public class SecurityConfig {
                                 "/api/v1/admin/dashboard/**",
                                 "/api/v1/admin/access/**",
 
-                                "/api/v1/author/dashboard/**"
+                                "/api/v1/author/dashboard/**",
+                                "/api/v1/author/works/**"
 
                         ).permitAll()
 
