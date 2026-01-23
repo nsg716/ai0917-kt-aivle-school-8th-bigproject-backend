@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping("/api/v1/author")
 public class UserPasswordController {
 
     private final UserService userService;
@@ -17,18 +17,28 @@ public class UserPasswordController {
         this.userService = userService;
     }
 
-    @PatchMapping("/me/password")
-    public Map<String, Object> changeMyPassword(Authentication authentication,
+    /**
+     * 비밀번호 변경
+     * PATCH /api/v1/author/{userId}/mypage/pwd
+     */
+    @PatchMapping("/{userId}/mypage/pwd")
+    public Map<String, Object> changeMyPassword(@PathVariable Long userId,
+                                                Authentication authentication,
                                                 @RequestBody ChangePasswordRequest req) {
 
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new RuntimeException("로그인이 필요합니다.");
         }
 
-        Long userId = (Long) authentication.getPrincipal(); // ✅ 너희 프로젝트 방식
+        Long loginUserId = (Long) authentication.getPrincipal();
+
+        // URL의 userId와 로그인한 userId가 같아야 함
+        if (!userId.equals(loginUserId)) {
+            throw new RuntimeException("본인 계정만 비밀번호 변경이 가능합니다.");
+        }
 
         userService.changeMySitePassword(
-                userId,
+                loginUserId,
                 req.currentPassword(),
                 req.newPassword(),
                 req.newPasswordConfirm()
