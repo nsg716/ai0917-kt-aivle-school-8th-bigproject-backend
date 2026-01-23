@@ -13,7 +13,7 @@ import java.util.Optional;
  */
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByNaverId(String naverId);
-
+    Optional<User> findByNameAndSiteEmail(String name, String siteEmail);
     //이메일 로그인용
     Optional<User> findBySiteEmail(String siteEmail);
 
@@ -32,6 +32,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // 특정 기간 동안의 활성 사용자 수 (DAU 계산용)
     @Query("SELECT COUNT(DISTINCT u) FROM User u WHERE u.updatedAt BETWEEN :start AND :end")
     Integer countActiveUsersBetween(
-            @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end);
+        @Param("start") LocalDateTime start,
+        @Param("end") LocalDateTime end);
 }
