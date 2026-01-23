@@ -24,19 +24,19 @@ public class AuthorDashboardController {
      */
     @GetMapping("/summary")
     public ResponseEntity<DashboardSummaryResponseDto> getSummary(
-            @RequestParam("authorId") Long authorId) { // String에서 Long으로 변경
-        return ResponseEntity.ok(dashboardService.getDashboardSummary(authorId));
+            @RequestParam("integrationId") String integrationId) {
+        return ResponseEntity.ok(dashboardService.getDashboardSummary(integrationId));
     }
-
-    /**
-     * 특정 ID(예: 9번 작가)를 고정으로 호출하는 테스트용 API
-     */
-    @GetMapping("/summary/test")
-    public ResponseEntity<DashboardSummaryResponseDto> getTestSummary() {
-        // 더 이상 "{미상}" 문자열을 보낼 수 없으므로, DB에 존재하는 작가 ID(Long)를 전달합니다.
-        Long testAuthorId = 9L;
-        return ResponseEntity.ok(dashboardService.getDashboardSummary(testAuthorId));
-    }
+//
+//    /**
+//     * 특정 ID(예: 9번 작가)를 고정으로 호출하는 테스트용 API
+//     */
+//    @GetMapping("/summary/test")
+//    public ResponseEntity<DashboardSummaryResponseDto> getTestSummary() {
+//        // 더 이상 "{미상}" 문자열을 보낼 수 없으므로, DB에 존재하는 작가 ID(Long)를 전달합니다.
+//        Long testAuthorId = 9L;
+//        return ResponseEntity.ok(dashboardService.getDashboardSummary(testAuthorId));
+//    }
 
     /**
      * 대시보드용 최신 공지 조회 (하단 목록용)

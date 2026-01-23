@@ -22,8 +22,8 @@ public class Work {
     private String title;
 
     // users 테이블의 id (PK)와 연결되는 외래키 역할
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @Column(name = "user_integration_id", nullable = false, length = 8)
+    private String userIntegrationId;
 
     // users 테이블의 name 값을 저장 (요청하신 writer 필드)
     @Column(nullable = false)
@@ -44,9 +44,9 @@ public class Work {
     private LocalDateTime updatedAt;
 
     @Builder
-    public Work(String title, Long userId, String writer, String description, WorkStatus status) {
+    public Work(String title, String userIntegrationId, String writer, String description, WorkStatus status) {
         this.title = title;
-        this.userId = userId;
+        this.userIntegrationId = userIntegrationId;
         this.writer = writer;
         this.description = description;
         this.status = status;

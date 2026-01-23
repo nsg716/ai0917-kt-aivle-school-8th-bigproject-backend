@@ -73,9 +73,6 @@ public class DataCollectionScheduler {
             double memoryUsage = (startSample.memoryUsage + endSample.memoryUsage) / 2.0;
             double storageUsage = (startSample.storageUsage + endSample.storageUsage) / 2.0;
 
-            log.info("Sampled metrics - CPU: {:.2f}%, Memory: {:.2f}%, Storage: {:.2f}%",
-                    cpuUsage, memoryUsage, storageUsage);
-
             // 임계치 체크 (예: 90% 이상일 때 에러 로그 생성)
             if (cpuUsage > 90.0 || memoryUsage > 90.0 || storageUsage > 90.0) {
                 // 1. SystemLog에 저장 (기존 로직 유지)

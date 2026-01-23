@@ -7,7 +7,7 @@ import org.springframework.data.domain.Pageable;
 
 public interface DashboardService {
 
-    DashboardSummaryResponseDto getDashboardSummary(Long authorId);
+    DashboardSummaryResponseDto getDashboardSummary(String integrationId);
 
     Page<NoticeResponseDto> getDashboardNotices(Pageable pageable);
 }
