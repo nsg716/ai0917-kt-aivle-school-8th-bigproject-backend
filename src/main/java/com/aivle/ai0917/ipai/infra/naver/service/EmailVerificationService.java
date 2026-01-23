@@ -1,6 +1,7 @@
 package com.aivle.ai0917.ipai.infra.naver.service;
 
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class EmailVerificationService {
 
+    @Value("${spring.mail.username}")
+    private String from;
     private final JavaMailSender mailSender;
     private final SecureRandom random = new SecureRandom();
 
@@ -32,6 +35,7 @@ public class EmailVerificationService {
         store.put(email, new CodeEntry(code, expiresAt, false));
 
         SimpleMailMessage msg = new SimpleMailMessage();
+        msg.setFrom(from);
         msg.setTo(email);
         msg.setSubject("[IPAI] 이메일 인증 코드");
         msg.setText("인증 코드: " + code + "\n(5분 내 입력)");
@@ -54,4 +58,9 @@ public class EmailVerificationService {
     }
 
     private record CodeEntry(String code, Instant expiresAt, boolean verified) {}
+
+    //재사용 방지
+    public void invalidate(String email) {
+        store.remove(email);
+    }
 }

@@ -1,6 +1,7 @@
 package com.aivle.ai0917.ipai.global.security.jwt;
 
 
+import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -28,7 +29,7 @@ public class JwtProvider {
     }
 
     /** 우리 서비스 Access Token(JWT) 생성 */
-    public String createAccessToken(Long userId, String role) {
+    public String createAccessToken(Long userId, UserRole role) {
 
         Instant now = Instant.now();
         Instant exp = now.plusSeconds(props.getAccessTokenExpMinutes() * 60);

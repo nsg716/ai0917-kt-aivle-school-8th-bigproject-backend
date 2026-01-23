@@ -38,4 +38,36 @@ public class DeploymentInfo {
 
     @Column(columnDefinition = "TEXT")
     private String releaseNotes;
+
+    // ========== 알림 시스템을 위한 추가 컬럼 (기존 기능 영향 없음) ==========
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean isRead = false; // Boolean으로 변경
+
+
+    @Column(length = 20)
+    private String status; // SUCCESS, FAILED, IN_PROGRESS (nullable로 기존 데이터 호환)
+
+    @Column(columnDefinition = "TEXT")
+    private String description; // 배포 설명 (nullable로 기존 데이터 호환)
+
+    // ========== 기존 데이터 호환을 위한 헬퍼 메서드 ==========
+
+    /**
+     * 알림 시스템용 status 값 반환 (null이면 기본값 SUCCESS)
+     */
+    public String getStatusOrDefault() {
+        return status != null ? status : "SUCCESS";
+    }
+
+    /**
+     * 알림 시스템용 description 반환 (null이면 releaseNotes 사용)
+     */
+    public String getDescriptionOrDefault() {
+        return description != null ? description : releaseNotes;
+    }
+
+    public void markAsRead() {
+        this.isRead = true;
+    }
 }

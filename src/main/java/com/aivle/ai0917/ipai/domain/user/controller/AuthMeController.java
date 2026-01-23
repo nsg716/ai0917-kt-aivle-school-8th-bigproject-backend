@@ -51,7 +51,7 @@ public class AuthMeController {
 
             return Map.of(
                     "type", "AUTH",
-                    "userId", user.getId(),
+                    "userId", user.getIntegrationId(),
                     "role", user.getRole(),
                     "siteEmail", user.getSiteEmail() == null ? "" : user.getSiteEmail(),
                     "name", user.getName() == null ? "" : user.getName()

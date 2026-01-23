@@ -1,6 +1,7 @@
 package com.aivle.ai0917.ipai.domain.user.model;
 
 import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
+import com.aivle.ai0917.ipai.global.utils.Base62Util; // 앞서 만든 유틸리티
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -12,7 +13,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "users", indexes = {
         @Index(name = "idx_users_naver_id", columnList = "naver_id", unique = true),
-        @Index(name = "idx_users_email_id", columnList = "site_email", unique = true)
+        @Index(name = "idx_users_email_id", columnList = "site_email", unique = true),
+        @Index(name = "idx_users_integration_id", columnList = "integration_id", unique = true) // 인덱스 추가
 })
 public class User {
 
@@ -20,15 +22,16 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** 네이버 고유 ID (소셜 로그인 사용자는 필수, 일반 사용자는 null) */
+    /** 외부 시스템 연동용 고유 8자리 ID */
+    @Column(name = "integration_id", unique = true, nullable = false, length = 8)
+    private String integrationId;
+
     @Column(unique = true, length = 64)
     private String naverId;
 
-    /** 사이트 자체 로그인 아이디 (일반 사용자는 필수, 소셜 사용자는 null 허용) */
     @Column(name = "site_email", unique = true, length = 50, nullable = true)
     private String siteEmail;
 
-    /** 사이트 자체 로그인 비밀번호 (소셜 사용자는 null 허용) */
     @Column(name = "site_pwd", nullable = true)
     private String sitePwd;
 
@@ -49,7 +52,8 @@ public class User {
 
     @Builder
     public User(String naverId, String siteEmail, String sitePwd, String email, String name,
-                String gender, String birthYear, String birthday, String mobile, UserRole role, LocalDateTime createdAt, LocalDateTime updatedAt ) {
+                String gender, String birthYear, String birthday, String mobile, UserRole role,
+                LocalDateTime createdAt, LocalDateTime updatedAt, String integrationId) {
         this.naverId = naverId;
         this.siteEmail = siteEmail;
         this.sitePwd = sitePwd;
@@ -62,12 +66,17 @@ public class User {
         this.role = (role != null) ? role : UserRole.Author;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.integrationId = integrationId;
     }
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+        // 저장 시 값이 없으면 8자리 고유값 생성
+        if (this.integrationId == null) {
+            this.integrationId = Base62Util.generate8CharId();
+        }
     }
 
     @PreUpdate
@@ -75,7 +84,6 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // 비즈니스 로직: 권한 수정
     public void updateAccess(UserRole role) {
         this.role = role;
         this.updatedAt = LocalDateTime.now();
