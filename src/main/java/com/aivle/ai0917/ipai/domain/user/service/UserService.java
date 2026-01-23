@@ -21,4 +21,7 @@ public interface UserService {
     // ✅ 추가: 비밀번호 변경(내부에서 인코딩 + 저장까지)
     void updateSitePassword(String siteEmail, String rawNewPassword);
 
+    void changeMySitePassword(Long userId, String currentPassword, String newPassword, String newPasswordConfirm);
+
+
 }

@@ -53,6 +53,44 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
+    @Override
+    @Transactional
+    public void changeMySitePassword(Long userId,
+                                     String currentPassword,
+                                     String newPassword,
+                                     String newPasswordConfirm) {
+
+        if (currentPassword == null || currentPassword.isBlank())
+            throw new RuntimeException("기존 비밀번호를 입력해주세요.");
+        if (newPassword == null || newPassword.isBlank())
+            throw new RuntimeException("새 비밀번호를 입력해주세요.");
+        if (newPasswordConfirm == null || newPasswordConfirm.isBlank())
+            throw new RuntimeException("새 비밀번호 확인을 입력해주세요.");
+        if (!newPassword.equals(newPasswordConfirm))
+            throw new RuntimeException("새 비밀번호가 일치하지 않습니다.");
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        // ✅ sitePwd가 없는 계정(예: 소셜만 가입한 케이스) 방어
+        if (user.getSitePwd() == null || user.getSitePwd().isBlank()) {
+            throw new RuntimeException("이 계정은 비밀번호가 설정되어 있지 않습니다. 비밀번호 재설정을 이용하세요.");
+        }
+
+        // ✅ 기존 비밀번호 검증 (반드시 matches)
+        if (!passwordEncoder.matches(currentPassword, user.getSitePwd())) {
+            throw new RuntimeException("기존 비밀번호가 올바르지 않습니다.");
+        }
+
+        // 동일 비밀번호 방지
+        if (passwordEncoder.matches(newPassword, user.getSitePwd())) {
+            throw new RuntimeException("새 비밀번호가 기존 비밀번호와 같습니다.");
+        }
+
+        user.setSitePwd(passwordEncoder.encode(newPassword));
+        // @PreUpdate가 updatedAt 갱신
+    }
+
 
     @Override
     @Transactional
