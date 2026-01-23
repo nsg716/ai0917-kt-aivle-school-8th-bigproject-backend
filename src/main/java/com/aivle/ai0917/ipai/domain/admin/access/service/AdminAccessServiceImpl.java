@@ -42,7 +42,7 @@ public class AdminAccessServiceImpl implements AdminAccessService {
                 .map(user -> UserListResponseDto.builder()
                         .id(user.getId())
                         .name(user.getName())
-                        .email(user.getEmail())
+                        .siteEmail(user.getSiteEmail())
                         .role(user.getRole())
                         .createdAt(user.getCreatedAt())
                         .build());

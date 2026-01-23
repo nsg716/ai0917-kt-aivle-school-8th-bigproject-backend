@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 public class UserListResponseDto {
     private Long id;
     private String name;
-    private String email;
+    private String siteEmail;
     private UserRole role;
     private LocalDateTime createdAt;
 }
