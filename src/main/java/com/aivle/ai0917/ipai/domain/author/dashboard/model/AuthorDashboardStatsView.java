@@ -15,7 +15,7 @@ import org.hibernate.annotations.Immutable;
 )
 @org.hibernate.annotations.Synchronize({})
 @Getter
-public class AuthorDashboardStats {
+public class AuthorDashboardStatsView {
     @Id
     @Column(name = "author_integration_id")
     private String authorId;
