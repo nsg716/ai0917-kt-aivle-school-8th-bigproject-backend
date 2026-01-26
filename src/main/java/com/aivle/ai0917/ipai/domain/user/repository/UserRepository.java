@@ -1,5 +1,6 @@
 package com.aivle.ai0917.ipai.domain.user.repository;
 
+import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
 import com.aivle.ai0917.ipai.domain.user.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -49,4 +50,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Modifying(clearAutomatically = true) // 실행 후 영속성 컨텍스트를 비워줌
     @Query("UPDATE User u SET u.lastActivityAt = :now WHERE u.id = :id")
     int updateLastActivity(@Param("id") Long id, @Param("now") LocalDateTime now);
+
+    /**
+     * Deactivated 상태이면서 업데이트된 지 7일이 지난 사용자 삭제
+     *
+     */
+    @Modifying
+    @Query("DELETE FROM User u WHERE u.role = :role AND u.lastActivityAt <= :threshold")
+    int deleteExpiredDeactivatedUsers(@Param("role") UserRole role, @Param("threshold") LocalDateTime threshold);
 }
