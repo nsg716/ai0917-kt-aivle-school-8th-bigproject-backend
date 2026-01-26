@@ -1,4 +1,4 @@
-package com.aivle.ai0917.ipai.domain.author.dashboard.model;
+package com.aivle.ai0917.ipai.domain.author.works.model;
 
 import lombok.Getter;
 

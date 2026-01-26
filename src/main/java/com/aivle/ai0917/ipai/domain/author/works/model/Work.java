@@ -1,4 +1,4 @@
-package com.aivle.ai0917.ipai.domain.author.dashboard.model;
+package com.aivle.ai0917.ipai.domain.author.works.model;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -51,4 +51,10 @@ public class Work {
         this.description = description;
         this.status = status;
     }
+    public void update(String title, String description, WorkStatus status) {
+        if (title != null) this.title = title;
+        if (description != null) this.description = description;
+        if (status != null) this.status = status;
+    }
+
 }

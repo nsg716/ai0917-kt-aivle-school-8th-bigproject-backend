@@ -44,3 +44,8 @@ server:
   tomcat:
     accesslog:
       enabled: true
+
+file:
+  dir: ./uploads/ # 기본값
+#  dir: C:/data/ipai/uploads/ # 윈도우용 절대 경로
+#  dir: /home/ubuntu/app/uploads/ # 리눅스용 절대 경로

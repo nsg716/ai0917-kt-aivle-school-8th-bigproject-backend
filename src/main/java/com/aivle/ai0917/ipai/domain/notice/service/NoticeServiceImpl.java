@@ -26,7 +26,15 @@ public class NoticeServiceImpl implements NoticeService {
 
     @Override
     public Page<NoticeResponseDto> getNoticeList(String keyword, Pageable pageable) {
-        return noticeRepository.findAll(pageable).map(NoticeResponseDto::new);
+        // 1. 키워드가 없으면 전체 목록 조회
+        if (keyword == null || keyword.isBlank()) {
+            return noticeRepository.findAll(pageable).map(NoticeResponseDto::new);
+        }
+        else {
+            // 2. 제목(Title)에 키워드가 포함된 데이터만 조회
+            return noticeRepository.findByTitleContaining(keyword, pageable)
+                    .map(NoticeResponseDto::new);
+        }
     }
 
     @Override

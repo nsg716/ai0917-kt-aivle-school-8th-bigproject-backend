@@ -1,4 +1,4 @@
 package com.aivle.ai0917.ipai.domain.author.info.controller;
 
-public class AuthorController {
+public class AuthorInfoController {
 }

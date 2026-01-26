@@ -20,7 +20,7 @@ public class AuthorDashboardController {
 
     /**
      * 작가 활동 요약 정보 조회 (상단 카드용)
-     * 호출 예: /api/v1/author/dashboard/summary?authorId=9
+     * 호출 예: /api/v1/author/dashboard/summary?integrationId=LQPvFdJz
      */
     @GetMapping("/summary")
     public ResponseEntity<DashboardSummaryResponseDto> getSummary(
