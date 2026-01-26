@@ -33,7 +33,8 @@ public class SecurityConfig {
                         // .ignoringRequestMatchers("/api/v1/auth/naver/**")
                         .ignoringRequestMatchers(
                                 "/api/v1/signup/naver/complete",
-                                "/api/v1/admin/sysnotice/**"
+                                "/api/v1/admin/sysnotice/**",
+                                "api/v1/**"
                         )
                 )
 
