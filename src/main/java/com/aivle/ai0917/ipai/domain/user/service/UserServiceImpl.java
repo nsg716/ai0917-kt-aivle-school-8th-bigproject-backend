@@ -1,5 +1,6 @@
 package com.aivle.ai0917.ipai.domain.user.service;
 
+import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
 import com.aivle.ai0917.ipai.domain.user.model.User;
 import com.aivle.ai0917.ipai.domain.user.repository.UserRepository;
 import com.aivle.ai0917.ipai.global.utils.Base62Util;
@@ -103,5 +104,16 @@ public class UserServiceImpl implements UserService {
         user.setIntegrationId(uniqueId);
 
         return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void deactivated(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        user.setRole(UserRole.Deactivated);
+
+        userRepository.save(user);
     }
 }

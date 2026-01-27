@@ -27,6 +27,7 @@ public class AdminAccessServiceImpl implements AdminAccessService {
                 .adminCount(accessUserRepository.countByRole(UserRole.Admin))
                 .managerCount(accessUserRepository.countByRole(UserRole.Manager))
                 .authorCount(accessUserRepository.countByRole(UserRole.Author))
+                .deactivatedCount(accessUserRepository.countByRole(UserRole.Deactivated))
                 .build();
     }
 
@@ -45,6 +46,7 @@ public class AdminAccessServiceImpl implements AdminAccessService {
                         .siteEmail(user.getSiteEmail())
                         .role(user.getRole())
                         .createdAt(user.getCreatedAt())
+                        .lastActivityAt(user.getLastActivityAt())
                         .build());
     }
 

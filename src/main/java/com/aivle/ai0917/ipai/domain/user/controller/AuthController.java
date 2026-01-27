@@ -133,6 +133,7 @@ public class AuthController {
 
 package com.aivle.ai0917.ipai.domain.user.controller;
 
+import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
 import com.aivle.ai0917.ipai.domain.user.model.User;
 import com.aivle.ai0917.ipai.domain.user.repository.UserRepository;
 import com.aivle.ai0917.ipai.global.security.jwt.JwtProvider;
@@ -255,24 +256,37 @@ public class AuthController {
         var profile = naverAuthService.fetchProfile(code, state);
         String naverId = profile.getId();
 
+
+
         // (4) 이미 가입 완료(= siteEmail이 있는 유저)라면 바로 로그인 처리
         Optional<User> existing = userRepository.findByNaverId(naverId);
-        if (existing.isPresent() && existing.get().getSiteEmail() != null) {
+
+
+        if (existing.isPresent()) {
             User user = existing.get();
 
-            String accessJwt = jwtProvider.createAccessToken(user.getId(), user.getRole());
-            ResponseCookie accessCookie = ResponseCookie.from(ACCESS_COOKIE, accessJwt)
-                    .httpOnly(true)
-                    .secure(cookieSecure)
-                    .path("/")
-                    .sameSite(sameSite)
-                    .maxAge(Duration.ofMinutes(60))
-                    .build();
-            response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+            // 추가: 탈퇴한 회원(Withdrawn)인지 먼저 체크
+            if (user.getRole() == UserRole.Deactivated) {
+                // 탈퇴 회원이면 로그인 페이지로 에러와 함께 리다이렉트
+                response.sendRedirect(frontBaseUrl + "/login?error=withdrawn");
+                return;
+            }
 
-            // 로그인 완료 후 프론트가 처리할 callback 페이지로 이동
-            response.sendRedirect(frontBaseUrl + "/auth/callback");
-            return;
+            // 이미 가입 완료(= siteEmail이 있는 유저)라면 바로 로그인 처리
+            if (user.getSiteEmail() != null) {
+                String accessJwt = jwtProvider.createAccessToken(user.getId(), user.getRole());
+                ResponseCookie accessCookie = ResponseCookie.from(ACCESS_COOKIE, accessJwt)
+                        .httpOnly(true)
+                        .secure(cookieSecure)
+                        .path("/")
+                        .sameSite(sameSite)
+                        .maxAge(Duration.ofMinutes(60))
+                        .build();
+                response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+
+                response.sendRedirect(frontBaseUrl + "/auth/callback");
+                return;
+            }
         }
 
         // (5) 신규/미완료 유저 => pendingSignup 쿠키에 네이버 값 담아두기

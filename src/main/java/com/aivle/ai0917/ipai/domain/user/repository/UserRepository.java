@@ -1,7 +1,9 @@
 package com.aivle.ai0917.ipai.domain.user.repository;
 
+import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
 import com.aivle.ai0917.ipai.domain.user.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -30,12 +32,30 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Long countTotalUsers();
 
     // 활성 세션 수 (예: 최근 30분 이내 활동)
-    @Query("SELECT COUNT(DISTINCT u) FROM User u WHERE u.updatedAt >= :threshold")
+    @Query("SELECT COUNT(DISTINCT u) FROM User u WHERE u.lastActivityAt >= :threshold")
     Integer countActiveSessions(@Param("threshold") LocalDateTime threshold);
 
     // 특정 기간 동안의 활성 사용자 수 (DAU 계산용)
-    @Query("SELECT COUNT(DISTINCT u) FROM User u WHERE u.updatedAt BETWEEN :start AND :end")
+    @Query("SELECT COUNT(DISTINCT u) FROM User u WHERE u.lastActivityAt BETWEEN :start AND :end")
     Integer countActiveUsersBetween(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
+
+    /**
+     * @PreUpdate를 호출하지 않고 lastActivityAt만 업데이트
+     * @param id
+     * @param now
+     * @return
+     */
+    @Modifying(clearAutomatically = true) // 실행 후 영속성 컨텍스트를 비워줌
+    @Query("UPDATE User u SET u.lastActivityAt = :now WHERE u.id = :id")
+    int updateLastActivity(@Param("id") Long id, @Param("now") LocalDateTime now);
+
+    /**
+     * Deactivated 상태이면서 업데이트된 지 7일이 지난 사용자 삭제
+     *
+     */
+    @Modifying
+    @Query("DELETE FROM User u WHERE u.role = :role AND u.lastActivityAt <= :threshold")
+    int deleteExpiredDeactivatedUsers(@Param("role") UserRole role, @Param("threshold") LocalDateTime threshold);
 }

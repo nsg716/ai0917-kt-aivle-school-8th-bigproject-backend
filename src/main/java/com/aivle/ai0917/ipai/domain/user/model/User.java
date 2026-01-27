@@ -50,6 +50,10 @@ public class User {
 
     private LocalDateTime updatedAt;
 
+    @Column(name = "last_activity_at")
+    private LocalDateTime lastActivityAt;
+
+
     @Builder
     public User(String naverId, String siteEmail, String sitePwd, String email, String name,
                 String gender, String birthYear, String birthday, String mobile, UserRole role,
@@ -87,5 +91,9 @@ public class User {
     public void updateAccess(UserRole role) {
         this.role = role;
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateActivity() {
+        this.lastActivityAt = LocalDateTime.now();
     }
 }

@@ -15,4 +15,5 @@ public class AccessSummaryResponseDto {
     private long adminCount;
     private long managerCount;
     private long authorCount;
+    private long deactivatedCount;
 }

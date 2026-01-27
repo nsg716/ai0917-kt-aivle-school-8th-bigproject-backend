@@ -19,4 +19,5 @@ public class UserListResponseDto {
     private String siteEmail;
     private UserRole role;
     private LocalDateTime createdAt;
+    private LocalDateTime lastActivityAt;
 }

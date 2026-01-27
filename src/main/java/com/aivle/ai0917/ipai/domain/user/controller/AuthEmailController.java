@@ -2,6 +2,8 @@ package com.aivle.ai0917.ipai.domain.user.controller;
 
 
 
+import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
+import com.aivle.ai0917.ipai.domain.user.service.UserService;
 import com.aivle.ai0917.ipai.infra.naver.dto.LoginRequest;
 import com.aivle.ai0917.ipai.domain.user.model.User;
 import com.aivle.ai0917.ipai.domain.user.repository.UserRepository;
@@ -10,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +28,7 @@ public class AuthEmailController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
+    private final UserService userService;
 
     @Value("${security.cookie.secure:false}")
     private boolean cookieSecure;
@@ -38,10 +42,11 @@ public class AuthEmailController {
 
     public AuthEmailController(UserRepository userRepository,
                                PasswordEncoder passwordEncoder,
-                               JwtProvider jwtProvider) {
+                               JwtProvider jwtProvider, UserService userService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtProvider = jwtProvider;
+        this.userService = userService;
     }
 
     /**
@@ -65,6 +70,10 @@ public class AuthEmailController {
 
         User user = userRepository.findBySiteEmail(siteEmail)
                 .orElseThrow(() -> new RuntimeException("이메일 또는 비밀번호가 올바르지 않습니다."));
+
+        if (user.getRole() == UserRole.Deactivated) {
+            throw new RuntimeException("탈퇴 처리된 계정입니다. 고객센터에 문의하세요.");
+        }
 
         // ✅ 네이버 미완료 계정 등, 비번이 없으면 로그인 불가
         if (user.getSitePwd() == null || user.getSitePwd().isBlank()) {
@@ -110,5 +119,33 @@ public class AuthEmailController {
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, delete.toString());
         return Map.of("ok", true);
+    }
+
+    /**
+     * 계정 탈퇴
+     * @param authentication
+     * @param response
+     * @return
+     */
+    @PostMapping("/deactivated")
+    public Map<String, Object> withdraw(Authentication authentication, HttpServletResponse response) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof Long userId)) {
+            throw new RuntimeException("인증 정보가 없습니다.");
+        }
+
+        // 1. DB 상태 변경 (Deactivated)
+        userService.deactivated(userId);
+
+        // 2. 로그아웃 처리 (쿠키 삭제)
+        ResponseCookie delete = ResponseCookie.from(ACCESS_COOKIE, "")
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .path("/")
+                .sameSite(sameSite)
+                .maxAge(Duration.ZERO)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, delete.toString());
+
+        return Map.of("ok", true, "message", "계정 탈퇴가 완료되었습니다.");
     }
 }
