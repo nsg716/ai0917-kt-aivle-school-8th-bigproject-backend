@@ -53,11 +53,14 @@ public class User {
     @Column(name = "last_activity_at")
     private LocalDateTime lastActivityAt;
 
+    @Column(name = "manager_integration_id", nullable =true)
+    private String managerIntegrationId;
+
 
     @Builder
     public User(String naverId, String siteEmail, String sitePwd, String email, String name,
                 String gender, String birthYear, String birthday, String mobile, UserRole role,
-                LocalDateTime createdAt, LocalDateTime updatedAt, String integrationId) {
+                LocalDateTime createdAt, LocalDateTime updatedAt, String integrationId, String managerIntegrationId) {
         this.naverId = naverId;
         this.siteEmail = siteEmail;
         this.sitePwd = sitePwd;
@@ -71,6 +74,7 @@ public class User {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.integrationId = integrationId;
+        this.managerIntegrationId = managerIntegrationId;
     }
 
     @PrePersist
