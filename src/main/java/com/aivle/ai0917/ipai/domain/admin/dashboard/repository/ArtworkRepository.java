@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 public interface ArtworkRepository extends JpaRepository<Work, Long> {
 
     // 저장된 작품 수
-
     @Query("SELECT COUNT(w) FROM Work w")
     Long countSaveArtworks();
 }

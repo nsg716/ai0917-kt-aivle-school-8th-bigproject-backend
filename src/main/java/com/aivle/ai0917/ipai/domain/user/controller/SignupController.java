@@ -122,7 +122,7 @@ public class SignupController {
      * (F) 비밀번호 재설정 완료 - sitePwd 업데이트
      * 요청 바디: { "siteEmail": "...", "newPassword": "...", "newPasswordConfirm": "..." }
      *
-     * ✅ Controller -> Service -> Repository 구조 준수
+     * Controller -> Service -> Repository 구조 준수
      */
     @PostMapping("/password/reset")
     public Map<String, Object> resetPassword(@RequestBody Map<String, String> body) {
