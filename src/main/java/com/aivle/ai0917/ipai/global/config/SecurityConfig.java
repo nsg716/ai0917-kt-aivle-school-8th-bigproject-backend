@@ -27,7 +27,7 @@ public class SecurityConfig {
                 // ✅ HttpOnly 쿠키 인증이면 CSRF 켜는 것을 권장
                 // 프론트는 XSRF-TOKEN 쿠키를 읽어서 X-XSRF-TOKEN 헤더로 보내면 됨
                 .csrf(csrf -> csrf
-                                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         // OAuth 콜백은 GET이라 보통 CSRF 영향 없음.
                         // 필요하면 특정 경로만 ignore도 가능 (원하면 아래처럼)
                         // .ignoringRequestMatchers("/api/v1/auth/naver/**")
@@ -35,7 +35,6 @@ public class SecurityConfig {
                                 "/api/v1/signup/naver/complete",
                                 "/api/v1/admin/sysnotice/**",
                                 "/api/v1/**"
-
                         )
                 )
 
@@ -45,6 +44,7 @@ public class SecurityConfig {
                         // 공개 API만 정확히 오픈
                         .requestMatchers(
                                 "/api/v1/hello",
+                                "/api/v1/ai/**",
                                 "/api/v1/api/test",
 
                                 "/api/v1/auth/naver/hello",
@@ -53,17 +53,17 @@ public class SecurityConfig {
                                 "/api/v1/api/test",
 
                                 "/api/v1/admin/sysnotice/**",
-                                "/api/v1/admin/notice/**",
+                                "/api/v1/notice/**",
                                 "/api/v1/admin/dashboard/**",
                                 "/api/v1/admin/access/**",
 
                                 "/api/v1/author/dashboard/**",
                                 "/api/v1/author/works/**",
-                                "/api/v1/manager/author/{pwd}",
-                                "/api/v1/author/manager/code",
-                                "/error/**",
-                                "/api/v1/manage/**r",
-                                "/api/v1/author/manager/**"
+                                "/api/v1/author/manuscript/**",
+                                "/api/v1/author/**",
+                                "/error",
+                                "/api/v1/author/manager/**",
+                                "api/v1/manager/**"
 
                         ).permitAll()
 
@@ -87,7 +87,6 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable());
 
         http.addFilterBefore(new JwtAuthFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class);
-
 
         return http.build();
     }
