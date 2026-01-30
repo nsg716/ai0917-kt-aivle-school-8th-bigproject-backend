@@ -78,4 +78,26 @@ public class UserServiceImpl implements UserService {
 
         userRepository.save(user);
     }
+
+    @Override
+    @Transactional
+    public void changePasswordAfterLogin(Long userId, String currentPassword, String newPassword) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        if (user.getSitePwd() == null || user.getSitePwd().isBlank()) {
+            throw new RuntimeException("이 계정은 비밀번호가 설정되어 있지 않습니다.");
+        }
+
+        // 현재 비밀번호 검증
+        if (!passwordEncoder.matches(currentPassword, user.getSitePwd())) {
+            throw new RuntimeException("현재 비밀번호가 올바르지 않습니다.");
+        }
+
+        // 새 비밀번호 저장
+        user.setSitePwd(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
 }

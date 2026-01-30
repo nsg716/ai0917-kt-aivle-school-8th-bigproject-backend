@@ -3,6 +3,7 @@ package com.aivle.ai0917.ipai.domain.user.service;
 import com.aivle.ai0917.ipai.domain.user.model.User;
 import java.util.Optional;
 
+
 public interface UserService {
     // 고유 ID로 사용자 찾기
     Optional<User> getUserByIntegrationId(String integrationId);
@@ -23,5 +24,9 @@ public interface UserService {
 
     // ✅ 추가: 계정 탈퇴 처리 */
     void deactivated(Long userId);
+
+    void changePasswordAfterLogin(Long userId, String currentPassword, String newPassword);
+
+
 
 }

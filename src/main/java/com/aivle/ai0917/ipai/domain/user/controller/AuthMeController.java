@@ -54,7 +54,14 @@ public class AuthMeController {
                     "userId", user.getIntegrationId(),
                     "role", user.getRole(),
                     "siteEmail", user.getSiteEmail() == null ? "" : user.getSiteEmail(),
-                    "name", user.getName() == null ? "" : user.getName()
+                    "name", user.getName() == null ? "" : user.getName(),
+
+                    //추가
+                    "birthYear", user.getBirthYear() == null ? "" : user.getBirthYear(),
+                    "birthday", user.getBirthday() == null ? "" : user.getBirthday(),
+                    "gender", user.getGender() == null ? "" : user.getGender(),
+                    "mobile", user.getMobile() == null ? "" : user.getMobile(),
+                    "createdAt", user.getCreatedAt() == null ? "" : user.getCreatedAt()
             );
         }
 
