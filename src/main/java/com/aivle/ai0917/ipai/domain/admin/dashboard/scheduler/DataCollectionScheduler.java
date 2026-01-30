@@ -22,6 +22,7 @@ import java.lang.management.ManagementFactory;
 import java.time.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * 대시보드 데이터 자동 수집 스케줄러
@@ -181,21 +182,40 @@ public class DataCollectionScheduler {
     public void calculateDailyActiveUsers() {
         try {
             LocalDate yesterday = LocalDate.now().minusDays(1);
-            LocalDateTime start = yesterday.atStartOfDay();
+            LocalDateTime targetDate = yesterday.atStartOfDay(); // 통계 기준 시점 (00:00:00)
             LocalDateTime end = yesterday.atTime(23, 59, 59);
 
-            // 1. UserRepository를 통해 users 테이블에서 전날 활동 유저 수 집계
-            Integer activeUserCount = userRepository.countActiveUsersBetween(start, end);
+            // 1. UserRepository를 통해 전날 활동 유저 수 집계
+            Integer activeUserCount = userRepository.countActiveUsersBetween(targetDate, end);
 
-            // 2. 통계 테이블(DailyActiveUser)에 저장
-            DailyActiveUser dau = DailyActiveUser.builder()
-                    .date(start)
-                    .count(activeUserCount)
-                    .createdAt(LocalDateTime.now())
-                    .build();
+            // 2. 해당 날짜의 통계 데이터가 이미 존재하는지 조회
+            Optional<DailyActiveUser> existingDau = dauRepository.findByDate(targetDate);
 
-            dauRepository.save(dau);
-            log.info("Successfully aggregated DAU for {}: {}", yesterday, activeUserCount);
+            if (existingDau.isPresent()) {
+                // 3-1. 이미 있다면 기존 데이터의 카운트를 업데이트
+                DailyActiveUser dau = existingDau.get();
+                // DailyActiveUser 엔티티에 @Setter가 있거나 update 메서드가 있다고 가정합니다.
+                // 만약 불변 객체라면 새 객체를 builder로 만들어서 save 하시면 됩니다.
+                DailyActiveUser updatedDau = DailyActiveUser.builder()
+                        .id(dau.getId()) // 기존 ID 유지 (매우 중요)
+                        .date(dau.getDate())
+                        .count(activeUserCount)
+                        .createdAt(dau.getCreatedAt()) // 생성일 유지
+                        .build();
+
+                dauRepository.save(updatedDau);
+                log.info("Successfully updated DAU for {}: {}", yesterday, activeUserCount);
+            } else {
+                // 3-2. 없다면 새로 생성하여 저장
+                DailyActiveUser newDau = DailyActiveUser.builder()
+                        .date(targetDate)
+                        .count(activeUserCount)
+                        .createdAt(LocalDateTime.now())
+                        .build();
+
+                dauRepository.save(newDau);
+                log.info("Successfully aggregated new DAU for {}: {}", yesterday, activeUserCount);
+            }
         } catch (Exception e) {
             log.error("Failed to aggregate DAU", e);
         }

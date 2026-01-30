@@ -60,7 +60,10 @@ public class SecurityConfig {
                                 "/api/v1/author/dashboard/**",
                                 "/api/v1/author/works/**",
                                 "/api/v1/author/manuscript/**",
-                                "/api/v1/author/**"
+                                "/api/v1/author/**",
+
+                                "/api/v1/manager/iptrend/**"
+
 
                         ).permitAll()
 
