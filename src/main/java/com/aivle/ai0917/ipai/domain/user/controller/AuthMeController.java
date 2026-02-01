@@ -49,19 +49,23 @@ public class AuthMeController {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
-            return Map.of(
-                    "type", "AUTH",
-                    "userId", user.getIntegrationId(),
-                    "role", user.getRole(),
-                    "siteEmail", user.getSiteEmail() == null ? "" : user.getSiteEmail(),
-                    "name", user.getName() == null ? "" : user.getName(),
+            return Map.ofEntries(
+                    Map.entry("type", "AUTH"),
 
-                    //추가
-                    "birthYear", user.getBirthYear() == null ? "" : user.getBirthYear(),
-                    "birthday", user.getBirthday() == null ? "" : user.getBirthday(),
-                    "gender", user.getGender() == null ? "" : user.getGender(),
-                    "mobile", user.getMobile() == null ? "" : user.getMobile(),
-                    "createdAt", user.getCreatedAt() == null ? "" : user.getCreatedAt()
+                    Map.entry("userId", user.getIntegrationId()),
+
+                    Map.entry("managerIntegrationId",
+                            user.getManagerIntegrationId() == null ? "" : user.getManagerIntegrationId()),
+
+                    Map.entry("role", user.getRole()),
+                    Map.entry("siteEmail", user.getSiteEmail() == null ? "" : user.getSiteEmail()),
+                    Map.entry("name", user.getName() == null ? "" : user.getName()),
+
+                    Map.entry("birthYear", user.getBirthYear() == null ? "" : user.getBirthYear()),
+                    Map.entry("birthday", user.getBirthday() == null ? "" : user.getBirthday()),
+                    Map.entry("gender", user.getGender() == null ? "" : user.getGender()),
+                    Map.entry("mobile", user.getMobile() == null ? "" : user.getMobile()),
+                    Map.entry("createdAt", user.getCreatedAt() == null ? "" : user.getCreatedAt())
             );
         }
 
