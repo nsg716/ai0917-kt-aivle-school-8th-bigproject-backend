@@ -12,22 +12,23 @@ public interface WorkCommandRepository extends Repository<Work, Long> {
     @Transactional
     @Query(value = """
         INSERT INTO works (universe_id, primary_author_id, title, synopsis, genre, cover_image_url, status)
-        VALUES (:universeId, :authorId, :title, :synopsis, :genre, :coverImageUrl, '연재중')
+        VALUES (:universeId, :authorId, :title, :synopsis, :genre, :coverImageUrl, :status)
         RETURNING id
-        """, nativeQuery = true)
+        """, nativeQuery = true) // '연재중' 하드코딩 제거하고 파라미터로 받음
     Long insert(
             @Param("universeId") Long universeId,
             @Param("authorId") String authorId,
             @Param("title") String title,
             @Param("synopsis") String synopsis,
             @Param("genre") String genre,
-            @Param("coverImageUrl") String coverImageUrl
+            @Param("coverImageUrl") String coverImageUrl,
+            @Param("status") String status // [수정] 추가됨
     );
 
     @Modifying
     @Transactional
     @Query(value = "UPDATE works SET status = :status WHERE id = :id", nativeQuery = true)
-    int updateStatus(@Param("id") Long id, @Param("status") String status);
+    int updateStatus(@Param("id") Long id, @Param("status") String status); // String으로 받아서 처리
 
     @Modifying
     @Transactional

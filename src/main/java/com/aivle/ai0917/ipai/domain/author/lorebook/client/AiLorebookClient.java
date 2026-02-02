@@ -80,6 +80,27 @@ public class AiLorebookClient {
         }
     }
 
+    /**
+     * 4. 설정집 충돌 이후 업로드
+     * POST /DB_insert
+     */
+    public String insertAfterConflict(DbInsertRequest request) {
+        log.info("AI 서버로 충돌 해결 후 업로드 요청: WorkId={}, UserId={}", request.getWorkId(), request.getUserId());
+        try {
+            return aiWebClient.post()
+                    .uri("/dbupsert")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(request)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+        } catch (Exception e) {
+            log.error("충돌 해결 후 업로드 실패: {}", e.getMessage(), e);
+            throw new RuntimeException("AI 서버 업로드 실패: " + e.getMessage());
+        }
+    }
+
+
     // ===== DTO 정의 =====
 
     @Getter
@@ -105,15 +126,34 @@ public class AiLorebookClient {
     @Setter
     public static class ManualComparisonResponse {
         @JsonProperty("충돌")
-        private List<Object> conflicts; // [{인물1:충돌사유, "신규설정":...}, ...]
+        private Object conflicts; // [수정] List -> Object
 
         @JsonProperty("설정 결합")
-        private List<Object> settingMerge; // [[lore_id, {결합 설정집}, ep_nums], ...]
+        private Object settingMerge; // [수정] List -> Object
 
         @JsonProperty("신규 업로드")
-        private List<Object> newUploads; // [{설정집}, ep_num]
+        private Object newUploads; // [수정] List -> Object
 
         @JsonProperty("기존설정")
-        private List<Object> existingSettings; // [[lore_id, setting, ep_nums], ...]
+        private Object existingSettings; // [수정] List -> Object
     }
+    // [추가됨] 누락되었던 DbInsertRequest DTO 정의
+    @Getter
+    @Setter
+    @Builder
+    public static class DbInsertRequest {
+        @JsonProperty("work_id")
+        private Long workId;
+
+        @JsonProperty("user_id")
+        private String userId;
+
+        @JsonProperty("universe_id")
+        private Long universeId;
+
+        @JsonProperty("setting")
+        private Object setting; // JSON 객체 전체를 담기 위해 Object 사용
+    }
+
+
 }

@@ -120,10 +120,27 @@ public class SettingBookServiceImpl implements SettingBookService {
                 .userQuery(query)
                 .userId(userId)
                 .workId(workId)
-                .sim(0.3)
+                .sim((double) 0)
                 .limit(5)
                 .build();
 
         return aiLorebookClient.searchSimilarLore(request);
+    }
+
+    @Override
+    public String saveAfterConflict(Long workId, String userId, Long universeId, Object settingJson) {
+
+        AiLorebookClient.DbInsertRequest request = AiLorebookClient.DbInsertRequest.builder()
+                .workId(workId)
+                .userId(userId)
+                .universeId(universeId) // universeId가 필요하다면 파라미터로 받아야 함
+                .setting(settingJson)
+                .build();
+
+        log.info("충돌 해결 데이터 AI 전송 시작");
+        String response = aiLorebookClient.insertAfterConflict(request);
+        log.info("충돌 해결 데이터 AI 전송 완료: {}", response);
+
+        return response;
     }
 }

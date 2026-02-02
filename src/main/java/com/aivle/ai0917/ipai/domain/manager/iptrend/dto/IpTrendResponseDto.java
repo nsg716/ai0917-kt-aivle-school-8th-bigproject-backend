@@ -62,7 +62,7 @@ public class IpTrendResponseDto {
     public static class ReportPreviewResponse {
         private Long id;
         private String fileName;
-        private String fileUrl;  // 다운로드 URL
+        private String filepath;  // 다운로드 URL
         private Long fileSize;
         private LocalDateTime analysisDate;
         private LocalDateTime createdAt;
