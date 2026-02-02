@@ -43,5 +43,18 @@ public class WorkController {
         return ResponseEntity.ok().build();
     }
 
-    // ... (나머지는 동일)
+    @PatchMapping("/{id}")
+    public ResponseEntity<Void> updateWork(
+            @PathVariable Long id,
+            @RequestBody WorkDto.UpdateRequest request
+    ) {
+        workService.updateWork(id, request);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteWork(@PathVariable Long id) {
+        workService.deleteWork(id);
+        return ResponseEntity.noContent().build();
+    }
 }
