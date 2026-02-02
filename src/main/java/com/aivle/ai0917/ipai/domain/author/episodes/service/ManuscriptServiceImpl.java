@@ -5,6 +5,7 @@ import com.aivle.ai0917.ipai.domain.author.episodes.client.AiManuscriptClient;
 import com.aivle.ai0917.ipai.domain.author.episodes.dto.CategoryAnalysisRequestDto;
 import com.aivle.ai0917.ipai.domain.author.episodes.dto.ManuscriptRequestDto;
 import com.aivle.ai0917.ipai.domain.author.episodes.dto.ManuscriptResponseDto;
+import com.aivle.ai0917.ipai.domain.author.episodes.dto.ManuscriptUpdateRequestDto;
 import com.aivle.ai0917.ipai.domain.author.episodes.model.ManuscriptView;
 import com.aivle.ai0917.ipai.domain.author.episodes.repository.ManuscriptCommandRepository;
 import com.aivle.ai0917.ipai.domain.author.episodes.repository.ManuscriptRepository;
@@ -199,5 +200,28 @@ public class ManuscriptServiceImpl implements ManuscriptService {
             workCommandRepository.updateStatus(workId, WorkStatus.ONGOING.name());
             log.info("첫 원문 등록으로 작품 상태 변경 (NEW -> ONGOING): workId={}", workId);
         }
+    }
+    @Override
+    @Transactional
+    public void updateManuscript(Long id, ManuscriptUpdateRequestDto request) {
+        // 1. 존재 여부 확인
+        boolean exists = manuscriptRepository.existsById(id);
+        if (!exists) {
+            throw new RuntimeException("수정할 원문을 찾을 수 없습니다. ID: " + id);
+        }
+
+        // 2. 업데이트 실행 (DTO의 값을 그대로 전달)
+        int updated = manuscriptCommandRepository.updateManuscript(
+                id,
+                request.getSubtitle(),
+                request.getEp_num()
+        );
+
+        if (updated == 0) {
+            throw new RuntimeException("원문 수정에 실패했습니다.");
+        }
+
+        log.info("원문 정보 수정 완료. ID={}, Subtitle={}, EpNum={}",
+                id, request.getSubtitle(), request.getEp_num());
     }
 }

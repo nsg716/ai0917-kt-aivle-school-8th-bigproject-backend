@@ -4,6 +4,7 @@ import com.aivle.ai0917.ipai.domain.author.episodes.client.AiAnalysisClient;
 import com.aivle.ai0917.ipai.domain.author.episodes.dto.CategoryAnalysisRequestDto;
 import com.aivle.ai0917.ipai.domain.author.episodes.dto.ManuscriptRequestDto;
 import com.aivle.ai0917.ipai.domain.author.episodes.dto.ManuscriptResponseDto;
+import com.aivle.ai0917.ipai.domain.author.episodes.dto.ManuscriptUpdateRequestDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -27,4 +28,6 @@ public interface ManuscriptService {
     );
 
     void deleteManuscript(Long id);
+
+    void updateManuscript(Long id, ManuscriptUpdateRequestDto request);
 }
