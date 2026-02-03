@@ -5,9 +5,14 @@ import com.aivle.ai0917.ipai.domain.author.episodes.client.AiManuscriptClient;
 import com.aivle.ai0917.ipai.domain.author.episodes.dto.CategoryAnalysisRequestDto;
 import com.aivle.ai0917.ipai.domain.author.episodes.dto.ManuscriptRequestDto;
 import com.aivle.ai0917.ipai.domain.author.episodes.dto.ManuscriptResponseDto;
+import com.aivle.ai0917.ipai.domain.author.episodes.dto.ManuscriptUpdateRequestDto;
 import com.aivle.ai0917.ipai.domain.author.episodes.model.ManuscriptView;
 import com.aivle.ai0917.ipai.domain.author.episodes.repository.ManuscriptCommandRepository;
 import com.aivle.ai0917.ipai.domain.author.episodes.repository.ManuscriptRepository;
+import com.aivle.ai0917.ipai.domain.author.works.model.Work;
+import com.aivle.ai0917.ipai.domain.author.works.model.WorkStatus;
+import com.aivle.ai0917.ipai.domain.author.works.repository.WorkCommandRepository;
+import com.aivle.ai0917.ipai.domain.author.works.repository.WorkRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -29,6 +34,9 @@ public class ManuscriptServiceImpl implements ManuscriptService {
     private final ManuscriptCommandRepository manuscriptCommandRepository;
     private final AiManuscriptClient aiManuscriptClient;
     private final AiAnalysisClient aiAnalysisClient;
+
+    private final WorkRepository workRepository;
+    private final WorkCommandRepository workCommandRepository;
 
     @Override
     public Page<ManuscriptResponseDto> getManuscriptList(
@@ -98,6 +106,9 @@ public class ManuscriptServiceImpl implements ManuscriptService {
         // 4. DB 업데이트
         manuscriptCommandRepository.updateTxtPath(episodeId, aiFilePath);
 
+        // [추가] 작품 상태 업데이트 로직 (NEW -> ONGOING)
+        updateWorkStatusToOngoingIfNeeded(request.getWorkId());
+
         log.info("원문 업로드 및 AI 전송 완료: episodeId={}, wordCount={}", episodeId, wordCount);
         return episodeId;
     }
@@ -162,7 +173,55 @@ public class ManuscriptServiceImpl implements ManuscriptService {
             throw new RuntimeException("삭제할 원문이 없거나 이미 삭제되었습니다.");
         }
         if (view != null) {
+            revertWorkStatusToNewIfEmpty(view.getWorkId());
             log.info("원문 삭제 완료. ID: {}", id);
         }
+
+        log.info("원문 삭제 완료. ID: {}", id);
+    }
+
+    private void revertWorkStatusToNewIfEmpty(Long workId) {
+        // 남은 원문 개수 조회 (active_episodes_view 기준이므로 삭제된 건 카운트 안 됨)
+        long count = manuscriptRepository.countByWorkId(workId);
+
+        if (count == 0) {
+            // 상태를 NEW로 업데이트
+            workCommandRepository.updateStatus(workId, WorkStatus.NEW.name());
+            log.info("남은 원문이 없어 작품 상태 변경 (ONGOING -> NEW): workId={}", workId);
+        }
+    }
+
+    // [추가] 작품 상태 변경 헬퍼 메서드
+    private void updateWorkStatusToOngoingIfNeeded(Long workId) {
+        Work work = workRepository.findById(workId)
+                .orElseThrow(() -> new RuntimeException("작품을 찾을 수 없습니다. WorkID: " + workId));
+
+        if (work.getStatus() == WorkStatus.NEW) {
+            workCommandRepository.updateStatus(workId, WorkStatus.ONGOING.name());
+            log.info("첫 원문 등록으로 작품 상태 변경 (NEW -> ONGOING): workId={}", workId);
+        }
+    }
+    @Override
+    @Transactional
+    public void updateManuscript(Long id, ManuscriptUpdateRequestDto request) {
+        // 1. 존재 여부 확인
+        boolean exists = manuscriptRepository.existsById(id);
+        if (!exists) {
+            throw new RuntimeException("수정할 원문을 찾을 수 없습니다. ID: " + id);
+        }
+
+        // 2. 업데이트 실행 (DTO의 값을 그대로 전달)
+        int updated = manuscriptCommandRepository.updateManuscript(
+                id,
+                request.getSubtitle(),
+                request.getEp_num()
+        );
+
+        if (updated == 0) {
+            throw new RuntimeException("원문 수정에 실패했습니다.");
+        }
+
+        log.info("원문 정보 수정 완료. ID={}, Subtitle={}, EpNum={}",
+                id, request.getSubtitle(), request.getEp_num());
     }
 }

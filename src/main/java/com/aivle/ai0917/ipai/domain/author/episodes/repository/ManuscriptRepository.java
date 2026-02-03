@@ -11,4 +11,6 @@ public interface ManuscriptRepository extends JpaRepository<ManuscriptView, Long
     Page<ManuscriptView> findByUserIdAndTitle(String userId, String title, Pageable pageable);
 
     Page<ManuscriptView> findByUserIdAndTitleAndTitleContaining(String userId, String title, String keyword, Pageable pageable);
+
+    long countByWorkId(Long workId);
 }

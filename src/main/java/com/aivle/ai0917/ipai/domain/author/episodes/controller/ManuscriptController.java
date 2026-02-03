@@ -4,6 +4,7 @@ import com.aivle.ai0917.ipai.domain.author.episodes.client.AiAnalysisClient;
 import com.aivle.ai0917.ipai.domain.author.episodes.dto.CategoryAnalysisRequestDto;
 import com.aivle.ai0917.ipai.domain.author.episodes.dto.ManuscriptRequestDto;
 import com.aivle.ai0917.ipai.domain.author.episodes.dto.ManuscriptResponseDto;
+import com.aivle.ai0917.ipai.domain.author.episodes.dto.ManuscriptUpdateRequestDto;
 import com.aivle.ai0917.ipai.domain.author.episodes.service.ManuscriptService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -96,5 +97,18 @@ public class ManuscriptController {
 
         manuscriptService.deleteManuscript(id);
         return ResponseEntity.ok("삭제 완료");
+    }
+
+    // 7. 원문 정보(소제목, 회차) 변경
+    // PATCH /api/v1/author/{userId}/{title}/manuscript/{id}
+    @PatchMapping("/{id}")
+    public ResponseEntity<String> updateManuscript(
+            @PathVariable String userId,
+            @PathVariable String title,
+            @PathVariable Long id,
+            @RequestBody ManuscriptUpdateRequestDto request) {
+
+        manuscriptService.updateManuscript(id, request);
+        return ResponseEntity.ok("수정 완료");
     }
 }

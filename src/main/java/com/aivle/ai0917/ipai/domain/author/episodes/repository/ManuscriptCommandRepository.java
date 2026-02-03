@@ -52,4 +52,25 @@ public interface ManuscriptCommandRepository extends Repository<ManuscriptView, 
             nativeQuery = true
     )
     int deleteById(@Param("id") Long id);
+
+
+    // [수정] 소제목(subtitle) 및 회차(ep_num) 수정
+    // 입력된 값이 NULL이면 기존 값 유지 (COALESCE 사용)
+    @Modifying
+    @Transactional
+    @Query(
+            value = """
+                UPDATE episodes 
+                SET subtitle = COALESCE(:subtitle, subtitle),
+                    ep_num = COALESCE(:ep_num, ep_num),
+                    updated_at = NOW() 
+                WHERE id = :id
+            """,
+            nativeQuery = true
+    )
+    int updateManuscript(
+            @Param("id") Long id,
+            @Param("subtitle") String subtitle,
+            @Param("ep_num") Integer ep_num
+    );
 }

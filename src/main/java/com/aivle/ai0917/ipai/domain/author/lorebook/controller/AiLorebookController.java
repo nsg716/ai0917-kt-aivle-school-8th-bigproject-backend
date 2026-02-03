@@ -1,6 +1,7 @@
 package com.aivle.ai0917.ipai.domain.author.lorebook.controller;
 
 import com.aivle.ai0917.ipai.domain.author.lorebook.client.AiLorebookClient;
+import com.aivle.ai0917.ipai.domain.author.lorebook.dto.LorebookConflictSolveRequestDto;
 import com.aivle.ai0917.ipai.domain.author.lorebook.dto.SettingBookCreateRequestDto;
 import com.aivle.ai0917.ipai.domain.author.lorebook.dto.SettingBookUpdateRequestDto;
 import com.aivle.ai0917.ipai.domain.author.lorebook.service.SettingBookService;
@@ -58,6 +59,25 @@ public class AiLorebookController {
                 request.getWorkId(),
                 request.getUserQuery(),
                 request.getCategory()
+        );
+        return ResponseEntity.ok(result);
+    }
+
+
+    // 8. 충돌 해결 후 최종 저장 (AI 연동)
+    // POST /api/v1/ai/author/{userId}/{title}/lorebook/conflict_solve
+    @PostMapping("/{userId}/{title}/lorebook/conflict_solve")
+    public ResponseEntity<String> saveAfterConflict(
+            @PathVariable String userId,
+            @PathVariable String title,
+            @RequestParam Long workId,
+            @RequestBody LorebookConflictSolveRequestDto request
+    ) {
+        String result = lorebookService.saveAfterConflict(
+                workId,
+                userId,
+                request.getUniverseId(),
+                request.getSetting()
         );
         return ResponseEntity.ok(result);
     }

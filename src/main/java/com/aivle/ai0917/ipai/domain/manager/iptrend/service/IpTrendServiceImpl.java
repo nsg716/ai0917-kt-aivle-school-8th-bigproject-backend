@@ -107,7 +107,7 @@ public class IpTrendServiceImpl implements IpTrendService {
         return ReportPreviewResponse.builder()
                 .id(report.getId())
                 .fileName(report.getFileName())
-                .fileUrl("/api/v1/manager/iptrend/download/" + report.getId())
+                .filepath(report.getFilePath())
                 .fileSize(report.getFileSize())
                 .analysisDate(report.getAnalysisDate())
                 .createdAt(report.getCreatedAt())

@@ -56,6 +56,7 @@ public class AiAnalysisClient {
                     .bodyToMono(SettingConflictResponse.class)
                     .block();
             log.info("설정집 충돌 검토 완료");
+            log.info("AI 서버 응답 (RAW): {}", response);  // 실제 JSON 확인
             return response;
         } catch (Exception e) {
             log.error("설정집 충돌 검토 실패: {}", e.getMessage(), e);
@@ -117,13 +118,20 @@ public class AiAnalysisClient {
     @Getter
     @Setter
     public static class SettingConflictResponse {
+        // 충돌 - Object 타입 유지 (이미 수정됨)
         @JsonProperty("충돌")
-        private List<Map<String, String>> conflicts;
+        private Object conflicts;
+
+        // 설정 결합 - Object로 변경
         @JsonProperty("설정 결합")
-        private List<Map<String, Object>> settingMerge;
+        private Object settingMerge;
+
+        // 신규 업로드 - Object로 변경 (여기가 문제!)
         @JsonProperty("신규 업로드")
-        private List<Map<String, Object>> newUploads;
+        private Object newUploads;
+
+        // 기존설정 - Object로 변경
         @JsonProperty("기존설정")
-        private List<Object> existingSettings;
+        private Object existingSettings;
     }
 }

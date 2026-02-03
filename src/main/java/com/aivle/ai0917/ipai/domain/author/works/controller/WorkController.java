@@ -1,6 +1,7 @@
 package com.aivle.ai0917.ipai.domain.author.works.controller;
 
 import com.aivle.ai0917.ipai.domain.author.works.dto.WorkDto;
+import com.aivle.ai0917.ipai.domain.author.works.model.WorkStatus; // Import
 import com.aivle.ai0917.ipai.domain.author.works.service.WorkService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,12 +16,6 @@ public class WorkController {
 
     private final WorkService workService;
 
-    /**
-     *
-     * @param authorId
-     * @param sortByTitle 기본값 제목순 정렬 false 일시 생성순으로 정렬
-     * @return
-     */
     @GetMapping
     public ResponseEntity<List<WorkDto.Response>> getWorks(
             @RequestParam String authorId,
@@ -42,7 +37,7 @@ public class WorkController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<Void> updateStatus(
             @PathVariable Long id,
-            @RequestParam String status
+            @RequestParam WorkStatus status // [수정] String -> WorkStatus (자동 변환됨)
     ) {
         workService.updateStatus(id, status);
         return ResponseEntity.ok().build();

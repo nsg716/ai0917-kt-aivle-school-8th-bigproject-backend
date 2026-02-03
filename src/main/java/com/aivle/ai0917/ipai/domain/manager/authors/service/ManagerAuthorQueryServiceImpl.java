@@ -1,6 +1,7 @@
 package com.aivle.ai0917.ipai.domain.manager.authors.service;
 
 import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
+import com.aivle.ai0917.ipai.domain.author.works.model.WorkStatus;
 import com.aivle.ai0917.ipai.domain.author.works.repository.WorkRepository;
 import com.aivle.ai0917.ipai.domain.manager.authors.dto.*;
 import com.aivle.ai0917.ipai.domain.manager.authors.repository.ManagerAuthorRepository;
@@ -16,7 +17,7 @@ import java.time.LocalDateTime;
 @Transactional(readOnly = true)
 public class ManagerAuthorQueryServiceImpl implements ManagerAuthorQueryService {
 
-    private static final String DELETED_STATUS = "DELETED"; // 프로젝트 상태값 정책에 맞게 유지/변경
+//    private static final String DELETED_STATUS = "DELETED"; // 프로젝트 상태값 정책에 맞게 유지/변경
 
     private final UserRepository userRepository;
     private final ManagerAuthorRepository managerAuthorRepository;
@@ -103,7 +104,7 @@ public class ManagerAuthorQueryServiceImpl implements ManagerAuthorQueryService 
         return userPage.map(u -> {
 
             // ✅ 변경: primaryAuthorId 기준 카운트 (+ DELETED 제외)
-            long workCount = workRepository.countByPrimaryAuthorIdAndStatusNot(u.getIntegrationId(), DELETED_STATUS);
+            long workCount = workRepository.countByPrimaryAuthorIdAndStatusNot(u.getIntegrationId(), WorkStatus.DELETED);
 
             String status = (u.getLastActivityAt() != null && u.getLastActivityAt().isAfter(activeThreshold))
                     ? "ACTIVE"
@@ -137,7 +138,7 @@ public class ManagerAuthorQueryServiceImpl implements ManagerAuthorQueryService 
 
         // ✅ 변경: primaryAuthorId 기준 최근 5개 (+ DELETED 제외)
         var recentWorks = workRepository
-                .findTop5ByPrimaryAuthorIdAndStatusNotOrderByCreatedAtDesc(author.getIntegrationId(), DELETED_STATUS)
+                .findTop5ByPrimaryAuthorIdAndStatusNotOrderByCreatedAtDesc(author.getIntegrationId(), WorkStatus.DELETED)
                 .stream()
                 .map(w -> WorkSummaryDto.builder()
                         .id(w.getId())
