@@ -60,17 +60,17 @@ public interface ManuscriptCommandRepository extends Repository<ManuscriptView, 
     @Transactional
     @Query(
             value = """
-                UPDATE episodes 
-                SET subtitle = COALESCE(:subtitle, subtitle),
-                    ep_num = COALESCE(:ep_num, ep_num),
-                    updated_at = NOW() 
-                WHERE id = :id
-            """,
+            UPDATE episodes 
+            SET subtitle = COALESCE(:subtitle, subtitle),
+                ep_num = COALESCE(:epNum, ep_num), -- 파라미터명 변경
+                updated_at = NOW() 
+            WHERE id = :id
+        """,
             nativeQuery = true
     )
     int updateManuscript(
             @Param("id") Long id,
             @Param("subtitle") String subtitle,
-            @Param("ep_num") Integer ep_num
+            @Param("epNum") Integer epNum // ep_num에서 epNum으로 변경
     );
 }

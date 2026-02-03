@@ -36,16 +36,16 @@ public class DashboardServiceImpl implements DashboardService {
         public DashboardSummaryResponseDto getDashboardSummary(String integrationId) {
             // author_id(users.id)로 조회하여 이름 중복 문제를 해결합니다.
             String sql = """
-        SELECT
-            COUNT(*) FILTER (WHERE w.status = 'ONGOING')   AS ongoing_count,
-            COUNT(*) FILTER (WHERE w.status = 'COMPLETED') AS completed_count,
-            COUNT(DISTINCT s.id)                           AS setting_book_count
-        FROM works w
-        JOIN users u
-            ON u.integration_id = w.user_integration_id
-        LEFT JOIN setting s
-            ON u.integration_id = ANY (s.userid)
-        WHERE u.integration_id = :integrationId
+                 SELECT
+                  COUNT(*) FILTER (WHERE w.status = 'ONGOING')   AS ongoing_count,
+                  COUNT(*) FILTER (WHERE w.status = 'COMPLETED')     AS completed_count,
+                  COUNT(DISTINCT l.id)                          AS lorebooks_count
+              FROM works w
+              JOIN users u
+                  ON u.integration_id = w.primary_author_id
+              LEFT JOIN lorebooks l
+                  ON u.integration_id = ANY (l.user_id)
+              WHERE u.integration_id = :integrationId
         """;
 
             Object[] result = (Object[]) entityManager.createNativeQuery(sql)

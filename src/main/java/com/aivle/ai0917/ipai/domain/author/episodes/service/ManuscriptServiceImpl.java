@@ -214,7 +214,7 @@ public class ManuscriptServiceImpl implements ManuscriptService {
         int updated = manuscriptCommandRepository.updateManuscript(
                 id,
                 request.getSubtitle(),
-                request.getEp_num()
+                request.getEpNum() // 변경된 Getter 호출
         );
 
         if (updated == 0) {
@@ -222,6 +222,6 @@ public class ManuscriptServiceImpl implements ManuscriptService {
         }
 
         log.info("원문 정보 수정 완료. ID={}, Subtitle={}, EpNum={}",
-                id, request.getSubtitle(), request.getEp_num());
+                id, request.getSubtitle(), request.getEpNum());
     }
 }

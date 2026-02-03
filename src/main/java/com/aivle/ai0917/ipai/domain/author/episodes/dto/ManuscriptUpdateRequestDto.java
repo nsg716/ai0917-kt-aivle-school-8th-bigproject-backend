@@ -9,5 +9,5 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ManuscriptUpdateRequestDto {
     private String subtitle; // 변경할 소제목
-    private Integer ep_num;
+    private Integer epNum;
 }
