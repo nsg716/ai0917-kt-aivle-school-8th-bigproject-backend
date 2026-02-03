@@ -31,7 +31,7 @@ public interface ManuscriptCommandRepository extends Repository<ManuscriptView, 
             @Param("episode") Integer episode,
             @Param("subtitle") String subtitle,
             @Param("txtPath") String txtPath,
-            @Param("wordCount") Integer wordCount // [추가]
+            @Param("wordCount") Integer wordCount
     );
 
     @Modifying
@@ -45,24 +45,30 @@ public interface ManuscriptCommandRepository extends Repository<ManuscriptView, 
             @Param("txtPath") String txtPath
     );
 
+    // [수정] 삭제 시 updated_at도 함께 갱신 (트리거 제거 대응)
     @Modifying
     @Transactional
     @Query(
-            value = "UPDATE episodes SET deleted_at = NOW() WHERE id = :id",
+            value = """
+            UPDATE episodes 
+            SET deleted_at = NOW(),
+                updated_at = NOW()
+            WHERE id = :id
+            """,
             nativeQuery = true
     )
     int deleteById(@Param("id") Long id);
 
-
-    // [수정] 소제목(subtitle) 및 회차(ep_num) 수정
-    // 입력된 값이 NULL이면 기존 값 유지 (COALESCE 사용)
+    // [수정] 텍스트 경로(txt_path)와 글자 수(word_count)도 수정 가능하도록 변경
     @Modifying
     @Transactional
     @Query(
             value = """
             UPDATE episodes 
             SET subtitle = COALESCE(:subtitle, subtitle),
-                ep_num = COALESCE(:epNum, ep_num), -- 파라미터명 변경
+                ep_num = COALESCE(:epNum, ep_num),
+                txt_path = COALESCE(:txtPath, txt_path),
+                word_count = COALESCE(:wordCount, word_count),
                 updated_at = NOW() 
             WHERE id = :id
         """,
@@ -71,6 +77,8 @@ public interface ManuscriptCommandRepository extends Repository<ManuscriptView, 
     int updateManuscript(
             @Param("id") Long id,
             @Param("subtitle") String subtitle,
-            @Param("epNum") Integer epNum // ep_num에서 epNum으로 변경
+            @Param("epNum") Integer epNum,
+            @Param("txtPath") String txtPath,     // [추가]
+            @Param("wordCount") Integer wordCount // [추가]
     );
 }

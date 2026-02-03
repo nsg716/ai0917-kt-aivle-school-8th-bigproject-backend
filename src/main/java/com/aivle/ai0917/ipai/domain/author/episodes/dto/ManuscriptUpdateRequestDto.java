@@ -10,4 +10,5 @@ import lombok.Setter;
 public class ManuscriptUpdateRequestDto {
     private String subtitle; // 변경할 소제목
     private Integer epNum;
+    private String txt;
 }
