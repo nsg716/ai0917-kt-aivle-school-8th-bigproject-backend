@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface ManuscriptCommandRepository extends Repository<ManuscriptView, Long> {
 
     @Modifying
@@ -45,14 +47,16 @@ public interface ManuscriptCommandRepository extends Repository<ManuscriptView, 
             @Param("txtPath") String txtPath
     );
 
-    // [수정] 삭제 시 updated_at도 함께 갱신 (트리거 제거 대응)
+    // [수정] txt_path를 NULL로 바꾸지 않음 (NOT NULL 제약 회피)
+    // 대신 deleted_at 설정 및 word_count를 0으로 초기화
     @Modifying
     @Transactional
     @Query(
             value = """
             UPDATE episodes 
             SET deleted_at = NOW(),
-                updated_at = NOW()
+                updated_at = NOW(),
+                word_count = 0
             WHERE id = :id
             """,
             nativeQuery = true
@@ -81,4 +85,36 @@ public interface ManuscriptCommandRepository extends Repository<ManuscriptView, 
             @Param("txtPath") String txtPath,     // [추가]
             @Param("wordCount") Integer wordCount // [추가]
     );
+
+    // [추가] 삭제된 회차 이후의 에피소드 번호들을 1씩 감소 (재정렬)
+    @Modifying
+    @Transactional
+    @Query(
+            value = """
+            UPDATE episodes
+            SET ep_num = ep_num - 1
+            WHERE work_id = :workId
+              AND ep_num > :deletedEpNum
+              AND deleted_at IS NULL
+            """,
+            nativeQuery = true
+    )
+    void reorderEpisodesAfterDeletion(
+            @Param("workId") Long workId,
+            @Param("deletedEpNum") Integer deletedEpNum
+    );
+
+    // [추가] 에피소드 목록을 읽기 전용(is_read_only = true)으로 변경
+    @Modifying
+    @Transactional
+    @Query(
+            value = """
+            UPDATE episodes
+            SET is_read_only = true,
+                updated_at = NOW()
+            WHERE id IN (:ids)
+            """,
+            nativeQuery = true
+    )
+    void updateIsReadOnlyTrue(@Param("ids") List<Long> ids);
 }

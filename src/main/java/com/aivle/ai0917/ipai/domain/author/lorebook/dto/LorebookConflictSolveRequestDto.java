@@ -8,4 +8,5 @@ import lombok.Setter;
 public class LorebookConflictSolveRequestDto {
     private Long universeId; // 필요 시
     private Object setting; // JSON 데이터
+    private int episodes;
 }

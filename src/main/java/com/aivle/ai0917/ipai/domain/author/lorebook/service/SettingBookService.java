@@ -27,5 +27,5 @@ public interface SettingBookService {
     // AI 유사도 검색
     List<Object> searchSimilarLore(String userId, Long workId, String query, String category);
 
-    String saveAfterConflict(Long workId, String userId, Long universeId, Object settingJson);
+    String saveAfterConflict(Long workId, String userId, Long universeId, Object settingJson, int episodeId);
 }

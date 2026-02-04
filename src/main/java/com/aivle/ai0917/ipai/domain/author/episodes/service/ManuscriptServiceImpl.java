@@ -67,8 +67,16 @@ public class ManuscriptServiceImpl implements ManuscriptService {
     @Override
     @Transactional
     public Long uploadManuscript(ManuscriptRequestDto request) {
-        log.info("원문 업로드/수정 요청: userId={}, workId={}, episode={}",
-                request.getUserId(), request.getWorkId(), request.getEpisode());
+        log.info("원문 업로드 요청: userId={}, workId={}", request.getUserId(), request.getWorkId());
+
+        // [추가 로직] 회차(Episode)가 없거나 0이면 자동 증가 처리
+        if (request.getEpisode() == null || request.getEpisode() == 0) {
+            Integer maxEp = manuscriptRepository.findMaxEpisodeByWorkId(request.getWorkId());
+            // 기존 원고가 없으면 1화, 있으면 +1화
+            int nextEp = (maxEp == null) ? 1 : maxEp + 1;
+            request.setEpisode(nextEp);
+            log.info("회차 번호 자동 할당: {}화", nextEp);
+        }
 
         // 1. 글자 수 계산
         int wordCount = (request.getTxt() != null) ? request.getTxt().length() : 0;
@@ -80,12 +88,9 @@ public class ManuscriptServiceImpl implements ManuscriptService {
         Long episodeId;
 
         if (existingOpt.isPresent()) {
-            // [UPDATE] 이미 존재하면 -> 기존 ID 사용 및 메타데이터 업데이트
             ManuscriptView existing = existingOpt.get();
             episodeId = existing.getId();
 
-            // 소제목, 글자수, 회차 정보 업데이트
-            // txt_path는 여기서 null로 보내 기존값 유지 (뒤에서 AI 저장 후 updateTxtPath로 갱신됨)
             manuscriptCommandRepository.updateManuscript(
                     episodeId,
                     request.getSubtitle(),
@@ -94,20 +99,18 @@ public class ManuscriptServiceImpl implements ManuscriptService {
                     wordCount
             );
             log.info("기존 원문 덮어쓰기(Update): ID={}", episodeId);
-
         } else {
-            // [INSERT] 없으면 -> 신규 등록
             manuscriptCommandRepository.insert(
                     request.getUserId(),
                     request.getWorkId(),
                     request.getTitle(),
                     request.getEpisode(),
                     request.getSubtitle(),
-                    "pending", // 임시 경로
+                    "pending",
                     wordCount
             );
 
-            // 방금 생성된 ID 조회
+            // 방금 생성된 ID 조회 로직 (기존과 동일)
             ManuscriptView savedManuscript = manuscriptRepository
                     .findByUserIdAndTitle(request.getUserId(), request.getTitle(), Pageable.unpaged())
                     .stream()
@@ -120,20 +123,10 @@ public class ManuscriptServiceImpl implements ManuscriptService {
             log.info("신규 원문 등록(Insert): ID={}", episodeId);
         }
 
-        // 3. AI 서버로 텍스트 전송 (공통 로직)
-        // 기존 파일이 있어도 덮어쓰거나 새 경로를 받아옴
+        // 3. AI 서버 전송 및 4. 경로 업데이트 (기존과 동일)
         String aiFilePath = aiManuscriptClient.saveNovelToAi(
-                episodeId,
-                request.getUserId(),
-                request.getWorkId(),
-                request.getEpisode(),
-                request.getTxt()
-        );
-
-        // 4. 파일 경로 DB 최종 업데이트
+                episodeId, request.getUserId(), request.getWorkId(), request.getEpisode(), request.getTxt());
         manuscriptCommandRepository.updateTxtPath(episodeId, aiFilePath);
-
-        // 5. 작품 상태 업데이트 (NEW -> ONGOING)
         updateWorkStatusToOngoingIfNeeded(request.getWorkId());
 
         return episodeId;
@@ -193,17 +186,46 @@ public class ManuscriptServiceImpl implements ManuscriptService {
     @Override
     @Transactional
     public void deleteManuscript(Long id) {
+        // 1. 삭제 대상 정보 조회
         ManuscriptView view = manuscriptRepository.findById(id).orElse(null);
-        int deleted = manuscriptCommandRepository.deleteById(id);
-        if (deleted == 0) {
+
+        if (view == null) {
             throw new RuntimeException("삭제할 원문이 없거나 이미 삭제되었습니다.");
         }
-        if (view != null) {
-            revertWorkStatusToNewIfEmpty(view.getWorkId());
-            log.info("원문 삭제 완료. ID: {}", id);
+
+        Long workId = view.getWorkId();
+        Integer deletedEpNum = view.getEpisode();
+
+        // [추가] 2. 실제 파일 내용 비우기 (빈 문자열 "" 전송)
+        // DB의 txt_path는 유지되지만, 그 경로에 있는 파일 내용은 빈 깡통이 됩니다.
+        try {
+            aiManuscriptClient.saveNovelToAi(
+                    view.getId(),
+                    view.getUserId(),
+                    view.getWorkId(),
+                    view.getEpisode(),
+                    "" // 빈 문자열 전송 -> 파일 내용 삭제 효과
+            );
+            log.info("원문 파일 내용 초기화 완료 (ID: {})", id);
+        } catch (Exception e) {
+            // 파일 비우기 실패해도 DB 삭제는 진행할지, 멈출지 결정해야 함.
+            // 보통은 로그만 남기고 DB 삭제 진행
+            log.warn("원문 파일 내용 비우기 실패 (ID: {}): {}", id, e.getMessage());
         }
 
-        log.info("원문 삭제 완료. ID: {}", id);
+        // 3. DB Soft Delete (txt_path는 유지, word_count=0)
+        int deleted = manuscriptCommandRepository.deleteById(id);
+
+        if (deleted > 0) {
+            log.info("원문 삭제(Soft Delete) 완료. ID: {}, Ep: {}", id, deletedEpNum);
+
+            // 4. 번호 재정렬
+            manuscriptCommandRepository.reorderEpisodesAfterDeletion(workId, deletedEpNum);
+            log.info("회차 재정렬 완료 (workId={}, deletedEp={})", workId, deletedEpNum);
+
+            // 5. 작품 상태 변경 체크
+            revertWorkStatusToNewIfEmpty(workId);
+        }
     }
 
     private void revertWorkStatusToNewIfEmpty(Long workId) {

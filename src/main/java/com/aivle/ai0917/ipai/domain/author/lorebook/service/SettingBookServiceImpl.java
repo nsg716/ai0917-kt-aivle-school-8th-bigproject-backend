@@ -1,5 +1,6 @@
 package com.aivle.ai0917.ipai.domain.author.lorebook.service;
 
+import com.aivle.ai0917.ipai.domain.author.episodes.repository.ManuscriptCommandRepository;
 import com.aivle.ai0917.ipai.domain.author.lorebook.client.AiLorebookClient;
 import com.aivle.ai0917.ipai.domain.author.lorebook.dto.*;
 import com.aivle.ai0917.ipai.domain.author.lorebook.repository.SettingBookCommandRepository;
@@ -25,6 +26,7 @@ public class SettingBookServiceImpl implements SettingBookService {
     private final SettingBookViewRepository viewRepository;
     private final SettingBookCommandRepository commandRepository;
     private final AiLorebookClient aiLorebookClient;
+    private final ManuscriptCommandRepository manuscriptCommandRepository;
 
     @Override
     public Page<SettingBookResponseDto> getLorebookList(String userId, Long workId, Pageable pageable) {
@@ -128,18 +130,30 @@ public class SettingBookServiceImpl implements SettingBookService {
     }
 
     @Override
-    public String saveAfterConflict(Long workId, String userId, Long universeId, Object settingJson) {
+    @Transactional
+    public String saveAfterConflict(Long workId, String userId, Long universeId, Object settingJson, int episodeId) {
 
+        // 1. AI 서버 전송 객체 생성 (DbInsertRequest)
+        // [중요] 여기에 episodeId를 넣지 않습니다. 따라서 AI 서버로 전송되지 않습니다.
         AiLorebookClient.DbInsertRequest request = AiLorebookClient.DbInsertRequest.builder()
                 .workId(workId)
                 .userId(userId)
-                .universeId(universeId) // universeId가 필요하다면 파라미터로 받아야 함
-                .setting(settingJson)
+                .universeId(universeId)
+                .setting(settingJson) // 설정 데이터만 전송
                 .build();
 
         log.info("충돌 해결 데이터 AI 전송 시작");
         String response = aiLorebookClient.insertAfterConflict(request);
         log.info("충돌 해결 데이터 AI 전송 완료: {}", response);
+
+        // 2. 에피소드 잠금 처리 (DB 작업)
+        // int -> Long 변환 후 리스트로 감싸서 처리 (기존 쿼리 재사용)
+        if (episodeId > 0) {
+            manuscriptCommandRepository.updateIsReadOnlyTrue(List.of((long) episodeId));
+            log.info("에피소드 잠금 처리 완료 (ID: {}, is_read_only=true)", episodeId);
+        } else {
+            log.warn("유효하지 않은 에피소드 ID입니다: {}", episodeId);
+        }
 
         return response;
     }

@@ -77,7 +77,8 @@ public class AiLorebookController {
                 workId,
                 userId,
                 request.getUniverseId(),
-                request.getSetting()
+                request.getSetting(),
+                request.getEpisodes() // [수정] int형 에피소드 ID 전달
         );
         return ResponseEntity.ok(result);
     }
