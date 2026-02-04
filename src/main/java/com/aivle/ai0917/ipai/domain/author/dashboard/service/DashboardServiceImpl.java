@@ -47,6 +47,7 @@ public class DashboardServiceImpl implements DashboardService {
                    ON u.integration_id = ANY (l.user_id)
                WHERE u.integration_id = :integrationId
                  AND w.deleted_at IS NULL
+                 AND l.deleted_at IS NULL
         """;
 
             Object[] result = (Object[]) entityManager.createNativeQuery(sql)
