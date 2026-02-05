@@ -17,11 +17,11 @@ public interface ManuscriptCommandRepository extends Repository<ManuscriptView, 
             value = """
         INSERT INTO episodes (
             user_id, work_id, title, ep_num, subtitle, txt_path, word_count,
-            is_analyzed, created_at, updated_at
+            created_at, updated_at
         )
         VALUES (
             :userId, :workId, :title, :episode, :subtitle, :txtPath, :wordCount,
-            false, NOW(), NOW()
+            NOW(), NOW()
         )
         """,
             nativeQuery = true

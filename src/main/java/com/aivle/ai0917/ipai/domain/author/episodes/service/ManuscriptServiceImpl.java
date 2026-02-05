@@ -67,6 +67,14 @@ public class ManuscriptServiceImpl implements ManuscriptService {
     @Override
     @Transactional
     public Long uploadManuscript(ManuscriptRequestDto request) {
+
+        boolean hasPendingAnalysis = manuscriptRepository.existsByWorkIdAndIsReadOnlyFalse(request.getWorkId());
+
+        if (hasPendingAnalysis) {
+            log.warn("업로드 차단: 작품 ID {}에 분석 중인(is_read_only=false) 에피소드가 존재합니다.", request.getWorkId());
+            throw new IllegalStateException("이전 원고의 분석이 완료되지 않아 새로운 원고를 업로드할 수 없습니다.");
+        }
+
         log.info("원문 업로드 요청: userId={}, workId={}", request.getUserId(), request.getWorkId());
 
         // [추가 로직] 회차(Episode)가 없거나 0이면 자동 증가 처리
@@ -122,7 +130,6 @@ public class ManuscriptServiceImpl implements ManuscriptService {
             episodeId = savedManuscript.getId();
             log.info("신규 원문 등록(Insert): ID={}", episodeId);
         }
-
         // 3. AI 서버 전송 및 4. 경로 업데이트 (기존과 동일)
         String aiFilePath = aiManuscriptClient.saveNovelToAi(
                 episodeId, request.getUserId(), request.getWorkId(), request.getEpisode(), request.getTxt());

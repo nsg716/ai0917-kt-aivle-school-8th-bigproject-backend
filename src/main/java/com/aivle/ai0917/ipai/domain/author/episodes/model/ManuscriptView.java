@@ -33,4 +33,7 @@ public class ManuscriptView {
     // [수정] DB 컬럼명은 txt_path, 자바 필드명은 txt
     @Column(name = "txt_path")
     private String txt;
+
+    @Column(name = "is_read_only")
+    private boolean isReadOnly;
 }

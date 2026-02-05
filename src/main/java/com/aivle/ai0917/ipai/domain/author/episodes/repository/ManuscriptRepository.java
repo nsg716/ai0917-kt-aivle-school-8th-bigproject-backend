@@ -23,4 +23,12 @@ public interface ManuscriptRepository extends JpaRepository<ManuscriptView, Long
             nativeQuery = true
     )
     Integer findMaxEpisodeByWorkId(@Param("workId") Long workId);
+
+
+//    @Query("SELECT CASE WHEN COUNT(e) > 0 THEN true ELSE false END " +
+//            "FROM ManuscriptView e " +
+//            "WHERE e.workId = :workId AND e.isReadOnly = false")
+    boolean existsByWorkIdAndIsReadOnlyFalse(Long workId);
+
+
 }
