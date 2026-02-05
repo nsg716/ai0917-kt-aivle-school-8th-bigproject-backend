@@ -68,13 +68,6 @@ public class ManuscriptServiceImpl implements ManuscriptService {
     @Transactional
     public Long uploadManuscript(ManuscriptRequestDto request) {
 
-        boolean hasPendingAnalysis = manuscriptRepository.existsByWorkIdAndIsReadOnlyFalse(request.getWorkId());
-
-        if (hasPendingAnalysis) {
-            log.warn("업로드 차단: 작품 ID {}에 분석 중인(is_read_only=false) 에피소드가 존재합니다.", request.getWorkId());
-            throw new IllegalStateException("이전 원고의 분석이 완료되지 않아 새로운 원고를 업로드할 수 없습니다.");
-        }
-
         log.info("원문 업로드 요청: userId={}, workId={}", request.getUserId(), request.getWorkId());
 
         // [추가 로직] 회차(Episode)가 없거나 0이면 자동 증가 처리
@@ -96,6 +89,11 @@ public class ManuscriptServiceImpl implements ManuscriptService {
         Long episodeId;
 
         if (existingOpt.isPresent()) {
+            // ==========================================
+            // [CASE 1: 기존 원고 수정 (Update)]
+            // 수정 시에는 '분석 중' 여부와 상관없이 덮어쓰기 허용 (또는 정책에 따라 다름)
+            // 차단 로직을 타지 않음
+            // ==========================================
             ManuscriptView existing = existingOpt.get();
             episodeId = existing.getId();
 
@@ -107,7 +105,19 @@ public class ManuscriptServiceImpl implements ManuscriptService {
                     wordCount
             );
             log.info("기존 원문 덮어쓰기(Update): ID={}", episodeId);
+
         } else {
+            // ==========================================
+            // [CASE 2: 신규 원고 등록 (Insert)]
+            // 신규 등록일 때만 '이전 원고 분석 여부'를 체크하여 차단
+            // ==========================================
+            boolean hasPendingAnalysis = manuscriptRepository.existsByWorkIdAndIsReadOnlyFalse(request.getWorkId());
+
+            if (hasPendingAnalysis) {
+                log.warn("업로드 차단: 작품 ID {}에 분석 중인(is_read_only=false) 에피소드가 존재합니다.", request.getWorkId());
+                throw new IllegalStateException("이전 원고의 분석이 완료되지 않아 새로운 원고를 업로드할 수 없습니다.");
+            }
+
             manuscriptCommandRepository.insert(
                     request.getUserId(),
                     request.getWorkId(),
@@ -118,7 +128,7 @@ public class ManuscriptServiceImpl implements ManuscriptService {
                     wordCount
             );
 
-            // 방금 생성된 ID 조회 로직 (기존과 동일)
+            // 방금 생성된 ID 조회 로직
             ManuscriptView savedManuscript = manuscriptRepository
                     .findByUserIdAndTitle(request.getUserId(), request.getTitle(), Pageable.unpaged())
                     .stream()
