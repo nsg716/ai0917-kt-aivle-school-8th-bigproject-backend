@@ -117,4 +117,15 @@ public interface ManuscriptCommandRepository extends Repository<ManuscriptView, 
             nativeQuery = true
     )
     void updateIsReadOnlyTrue(@Param("ids") List<Long> ids);
+
+    @Query(value = """
+        SELECT count(*) > 0 
+        FROM episodes 
+        WHERE work_id = :workId 
+          AND is_read_only = false 
+          AND deleted_at IS NULL 
+          AND ep_num != :currentEpisode
+        """, nativeQuery = true)
+    boolean existsPendingAnalysisExcludingCurrent(@Param("workId") Long workId, @Param("currentEpisode") Integer currentEpisode);
+
 }

@@ -16,7 +16,12 @@ public interface ManuscriptService {
 
     ManuscriptResponseDto getManuscriptDetail(Long id);
 
-    Long uploadManuscript(ManuscriptRequestDto request);
+//    Long uploadManuscript(ManuscriptRequestDto request);
+
+    // [변경] 기존 uploadManuscript -> create / modify 분리
+    Long createManuscript(ManuscriptRequestDto request);
+
+    Long modifyManuscriptText(ManuscriptRequestDto request);
 
     // [수정] 개별 파라미터 대신 DTO 사용
     AiAnalysisClient.CategoryExtractionResponse extractCategories(

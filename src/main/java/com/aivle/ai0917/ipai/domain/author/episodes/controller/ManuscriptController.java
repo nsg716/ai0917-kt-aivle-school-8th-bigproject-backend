@@ -45,9 +45,24 @@ public class ManuscriptController {
         return ResponseEntity.ok(result);
     }
 
-    // 3. 원문 등록 (JSON Body)
+//    // 3. 원문 등록 (JSON Body)
+//    @PostMapping("/upload")
+//    public ResponseEntity<Long> uploadManuscript(
+//            @PathVariable String userId,
+//            @PathVariable String title,
+//            @RequestBody ManuscriptRequestDto request) {
+//
+//        request.setUserId(userId);
+//        request.setTitle(title);
+//
+//        Long savedId = manuscriptService.uploadManuscript(request);
+//        return ResponseEntity.ok(savedId);
+//    }
+    // 3-1. 원문 신규 등록 (Insert)
+    // - 회차 자동 생성 기능 포함
+    // - 분석 중(is_read_only) 체크 포함
     @PostMapping("/upload")
-    public ResponseEntity<Long> uploadManuscript(
+    public ResponseEntity<Long> createManuscript(
             @PathVariable String userId,
             @PathVariable String title,
             @RequestBody ManuscriptRequestDto request) {
@@ -55,8 +70,24 @@ public class ManuscriptController {
         request.setUserId(userId);
         request.setTitle(title);
 
-        Long savedId = manuscriptService.uploadManuscript(request);
+        Long savedId = manuscriptService.createManuscript(request);
         return ResponseEntity.ok(savedId);
+    }
+
+    // 3-2. 원문 내용 수정 (Update)
+    // - 텍스트 파일 덮어쓰기
+    // - 분석 중 여부 상관없이 수정 가능 (기존 정책 유지)
+    @PatchMapping("/upload")
+    public ResponseEntity<Long> modifyManuscript(
+            @PathVariable String userId,
+            @PathVariable String title,
+            @RequestBody ManuscriptRequestDto request) {
+
+        request.setUserId(userId);
+        request.setTitle(title);
+
+        Long updatedId = manuscriptService.modifyManuscriptText(request);
+        return ResponseEntity.ok(updatedId);
     }
 
     // 4. 원문 키워드 추출 (수정: JSON Body 사용)
