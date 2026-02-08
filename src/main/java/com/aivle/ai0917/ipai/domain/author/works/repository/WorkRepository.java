@@ -22,4 +22,5 @@ public interface WorkRepository extends JpaRepository<Work, Long> {
 
     // ✅ 매니저 상세: 최근 작품 5개
     List<Work> findTop5ByPrimaryAuthorIdAndStatusNotOrderByCreatedAtDesc(String primaryAuthorId, WorkStatus status);
+
 }

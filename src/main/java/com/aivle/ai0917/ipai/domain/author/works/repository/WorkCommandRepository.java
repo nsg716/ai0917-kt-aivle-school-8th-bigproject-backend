@@ -1,11 +1,14 @@
 package com.aivle.ai0917.ipai.domain.author.works.repository;
 
 import com.aivle.ai0917.ipai.domain.author.works.model.Work;
+import com.aivle.ai0917.ipai.domain.author.works.model.WorkStatus;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
+
+import java.util.List;
 
 public interface WorkCommandRepository extends Repository<Work, Long> {
 
@@ -52,4 +55,22 @@ public interface WorkCommandRepository extends Repository<Work, Long> {
     @Transactional
     @Query(value = "UPDATE works SET deleted_at = CURRENT_TIMESTAMP WHERE id = :id", nativeQuery = true)
     int deleteById(@Param("id") Long id); // 쿼리 내용을 Soft Delete로 변경
+
+
+    // ipext 에서 사용
+    /**
+     * [추가] 매니저 ID로 담당 작가들의 작품 조회
+     */
+    @Query("""
+    SELECT w
+    FROM Work w
+    WHERE w.primaryAuthorId = :managerId
+      AND w.status <> :deletedStatus
+    ORDER BY w.createdAt DESC
+""")
+    List<Work> findAllByManagerId(
+            @Param("managerId") String managerId,
+            @Param("deletedStatus") WorkStatus deletedStatus
+    );
+
 }

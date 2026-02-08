@@ -22,4 +22,11 @@ public interface SettingBookViewRepository extends JpaRepository<SettingBookView
     @Query(value = "SELECT * FROM active_lorebooks_view WHERE :userId = ANY(user_id) AND work_id = :workId AND category = :category",
             nativeQuery = true)
     List<SettingBookView> findByUserIdAndWorkIdAndCategory(@Param("userId") String userId, @Param("workId") Long workId, @Param("category") String category);
+
+    /**
+     * 작품 ID 목록으로 설정집 조회
+     * @param workId
+     * @return
+     */
+    List<SettingBookView> findAllByWorkId(Long workId);
 }

@@ -1,0 +1,244 @@
+package com.aivle.ai0917.ipai.domain.manager.ipext.service;
+
+import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
+import com.aivle.ai0917.ipai.domain.author.lorebook.model.SettingBookView;
+import com.aivle.ai0917.ipai.domain.author.lorebook.repository.SettingBookViewRepository;
+import com.aivle.ai0917.ipai.domain.author.works.model.Work;
+import com.aivle.ai0917.ipai.domain.author.works.model.WorkStatus;
+import com.aivle.ai0917.ipai.domain.author.works.repository.WorkCommandRepository;
+import com.aivle.ai0917.ipai.domain.author.works.repository.WorkRepository;
+import com.aivle.ai0917.ipai.domain.manager.authors.repository.ManagerAuthorRepository;
+import com.aivle.ai0917.ipai.domain.manager.ipext.client.AiIpExtClient;
+import com.aivle.ai0917.ipai.domain.manager.ipext.dto.*;
+import com.aivle.ai0917.ipai.domain.manager.ipext.model.IpProposal;
+import com.aivle.ai0917.ipai.domain.manager.ipext.repository.IpProposalRepository;
+import com.aivle.ai0917.ipai.domain.user.model.User;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException; // [수정] 표준 예외 사용
+import java.util.stream.Collectors;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class IpextServiceImpl implements IpextService {
+
+    private final IpProposalRepository ipProposalRepository;
+    private final ManagerAuthorRepository managerAuthorRepository;
+    private final WorkRepository workRepository;
+    private final WorkCommandRepository workCommandRepository;
+    private final SettingBookViewRepository settingBookViewRepository;
+    private final AiIpExtClient aiIpExtClient;
+    private final IpProposalSaveService ipProposalSaveService;
+
+    @Override
+    public Page<IpProposalResponseDto> getProposalList(Pageable pageable) {
+        return ipProposalRepository.findAllActive(pageable)
+                .map(IpProposalResponseDto::new);
+    }
+
+    @Override
+    public IpProposalResponseDto getProposalDetail(Long id) {
+        IpProposal proposal = ipProposalRepository.findActiveById(id)
+                .orElseThrow(() -> new NoSuchElementException("해당 제안서를 찾을 수 없습니다. ID: " + id));
+
+        return new IpProposalResponseDto(proposal);
+    }
+
+    @Override
+    @Transactional
+    public void updateProposal(Long id, IpProposalRequestDto request) {
+        IpProposal proposal = ipProposalRepository.findActiveById(id)
+                .orElseThrow(() -> new NoSuchElementException("수정할 제안서를 찾을 수 없습니다. ID: " + id));
+
+        // 엔티티 업데이트 로직
+        proposal.updateFromRequest(
+                request.getTitle(),
+                request.getTargetFormat(),
+                request.getTargetGenre(),
+                request.getWorldSetting(),
+                request.getTargetAges(),
+                request.getTargetGender(),
+                request.getBudgetScale(),
+                request.getToneAndManner(),
+                request.getMediaDetail(),
+                request.getAddPrompt()
+        );
+    }
+
+    @Override
+    @Transactional
+    public void deleteProposal(Long id) {
+        IpProposal proposal = ipProposalRepository.findActiveById(id)
+                .orElseThrow(() -> new NoSuchElementException("삭제할 제안서를 찾을 수 없습니다. ID: " + id));
+
+        // Soft Delete 처리
+        proposal.softDelete();
+    }
+
+    @Override
+    public IpProposalResponseDto getProposalPreview(Long id) {
+        return getProposalDetail(id);
+    }
+
+    @Override
+    public List<AuthorMatchResponseDto> getMatchedAuthors(String managerId) {
+        // managerId(String)는 User 엔티티의 managerIntegrationId와 매칭됩니다.
+        // 페이징 없이 전체 목록을 가져오거나, 필요하다면 Pageable을 추가해야 합니다.
+        // 여기서는 편의상 전체 목록(Unpaged)으로 가져오는 예시입니다.
+
+        Page<User> authorsPage = managerAuthorRepository.findMatchedAuthors(
+                managerId,
+                null, // keyword 없음
+                UserRole.Author,
+                Pageable.unpaged()
+        );
+
+        return authorsPage.stream()
+                .map(author -> {
+                    // 각 작가의 작품 수 조회 (DELETED 제외)
+                    long workCount = workRepository.countByPrimaryAuthorIdAndStatusNot(
+                            author.getIntegrationId(),
+                            WorkStatus.DELETED
+                    );
+
+                    return AuthorMatchResponseDto.builder()
+                            .id(author.getId())
+                            .name(author.getName())
+                            .email(author.getSiteEmail())
+                            .workCount(workCount)
+                            .integrationId(author.getIntegrationId())
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<AuthorWorkDto> getAuthorWorks(String managerId) {
+        List<Work> works = workCommandRepository.findAllByManagerId(managerId, WorkStatus.DELETED);
+
+        return works.stream()
+                .map(work -> AuthorWorkDto.builder()
+                        .workId(work.getId())
+                        .title(work.getTitle())
+                        .primaryAuthorId(work.getPrimaryAuthorId())
+                        .genre(work.getGenre())
+                        .status(work.getStatus().name())
+                        .coverImageUrl(work.getCoverImageUrl())
+                        .createdAt(work.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<MatchedLorebookDto> getWorkLorebooks(Long workId) {
+
+        // 1. 작품 정보 조회 (제목을 가져오기 위함 + 존재 여부 확인)
+        Work work = workRepository.findById(workId)
+                .orElseThrow(() -> new NoSuchElementException("해당 작품을 찾을 수 없습니다. ID: " + workId));
+
+        // 2. 해당 작품의 설정집 목록 조회
+        List<SettingBookView> lorebooks = settingBookViewRepository.findAllByWorkId(workId);
+
+        // 3. DTO 변환 (하나의 작품에 대한 설정집들이므로 workTitle은 동일합니다)
+        return lorebooks.stream()
+                .map(lb -> MatchedLorebookDto.builder()
+                        .lorebookId(lb.getId())
+                        .keyword(lb.getKeyword())
+                        .category(lb.getCategory())
+                        .description(lb.getSetting() != null ? lb.getSetting().toString() : "")
+                        .workId(work.getId())
+                        .workTitle(work.getTitle())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    // [2단계] 설정집 충돌 여부 확인 (AI)
+    @Override
+    public AiIpExtClient.LorebookCheckResponse checkSettingsConflict(ConflictCheckRequestDto request) {
+        // request.getLorebooks()는 프론트에서 받은 원본 로어북 리스트 (List<Map<String, Object>>)
+        if (request.getLorebooks() == null || request.getLorebooks().isEmpty()) {
+            throw new IllegalArgumentException("충돌 검사를 수행할 설정집(Lorebook) 데이터가 없습니다.");
+        }
+
+        log.info("AI 설정 충돌 검사 실행. Lorebooks count: {}", request.getLorebooks().size());
+
+        // AI 서버 호출 -> 결과 반환 (이 결과에 processed_lorebooks가 포함됨)
+        return aiIpExtClient.checkLorebookConflict(request.getLorebooks());
+    }
+
+//    // [등록] IP 확장 제안 등록 (DB 저장 + AI 요청)
+//    @Override
+//    @Transactional
+//    public AiIpExtClient.ProposalResponse createProposal(IpProposalRequestDto request) {
+//        if (request.getManagerId() == null) {
+//            throw new IllegalArgumentException("Manager ID는 필수입니다.");
+//        }
+//
+//        // 1. 제안서 정보 DB 저장
+//        IpProposal proposal = IpProposal.builder()
+//                .managerId(request.getManagerId())
+//                .title(request.getTitle())
+//                .lorebookIds(request.getLorebookIds())
+//                .targetFormat(request.getTargetFormat())
+//                .targetGenre(request.getTargetGenre())
+//                .worldSetting(request.getWorldSetting())
+//                .targetAges(request.getTargetAges())
+//                .targetGender(request.getTargetGender())
+//                .budgetScale(request.getBudgetScale())
+//                .toneAndManner(request.getToneAndManner())
+//                .mediaDetail(request.getMediaDetail())
+//                .addPrompt(request.getAddPrompt())
+//                .expMarket(request.getSummary1())
+//                .expCreative(request.getSummary2())
+//                .expVisual(request.getSummary3())
+//                .expWorld(request.getSummary4())
+//                .expBusiness(request.getSummary5())
+//                .expProduction(request.getSummary6())
+//                .status(IpProposal.Status.NEW)
+//                .build();
+//
+//        IpProposal saved = ipProposalRepository.save(proposal);
+//        ipProposalRepository.flush();
+//
+//        log.info("제안서 DB 저장 완료: ID={}", saved.getId());
+//
+//        // 2. AI 서버로 PDF 생성 요청
+//        log.info("AI 서버로 IP 기획서 PDF 생성 요청 시작. Proposal ID={}", saved.getId());
+//
+//        AiIpExtClient.ProposalResponse response = aiIpExtClient.createIpProposal(
+//                saved.getId(),
+//                request.getProcessedLorebooks()
+//        );
+//
+//        return response;
+//    }
+
+    @Override
+    public AiIpExtClient.ProposalResponse createProposal(IpProposalRequestDto request) {
+        if (request.getManagerId() == null) {
+            throw new IllegalArgumentException("Manager ID는 필수입니다.");
+        }
+
+        // 1. 별도 트랜잭션으로 DB 저장 (즉시 커밋됨)
+        Long proposalId = ipProposalSaveService.saveProposal(request);
+
+        // 2. AI 서버 호출 (이미 DB에 커밋된 상태)
+        log.info("AI 서버로 IP 기획서 PDF 생성 요청 시작. Proposal ID={}", proposalId);
+
+        AiIpExtClient.ProposalResponse response = aiIpExtClient.createIpProposal(
+                proposalId,
+                request.getProcessedLorebooks()
+        );
+
+        return response;
+    }
+}
