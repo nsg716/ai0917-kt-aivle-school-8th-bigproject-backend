@@ -19,28 +19,34 @@ public class IpextController {
 
     private final IpextService ipextService;
 
-    // 1. IP 확장 조회 (목록)
-    // GET /api/v1/manager/ipext
-    @GetMapping
+    // 1. IP 확장 조회 (목록) - ManagerId 별 조회
+    // GET /api/v1/manager/ipext/{managerId}
+    @GetMapping("/{managerId}")
     public ResponseEntity<Page<IpProposalResponseDto>> getProposalList(
-            @PageableDefault(size = 10) Pageable pageable) {
-        return ResponseEntity.ok(ipextService.getProposalList(pageable));
+            @PathVariable String managerId,
+            @PageableDefault(size = 10, sort = "createdAt") Pageable pageable) {
+        // PageableDefault를 통해 sort, page 파라미터를 자동으로 처리합니다.
+        // 예: ?page=0&size=10&sort=createdAt,desc
+        return ResponseEntity.ok(ipextService.getProposalList(managerId, pageable));
     }
 
     // 2. IP 확장 제안 상세 조회
-    // GET /api/v1/manager/ipext/{id}
-    @GetMapping("/{id}")
-    public ResponseEntity<IpProposalResponseDto> getProposalDetail(@PathVariable Long id) {
-        return ResponseEntity.ok(ipextService.getProposalDetail(id));
+    // GET /api/v1/manager/ipext/{managerId}/{id}
+    @GetMapping("/{managerId}/{id}")
+    public ResponseEntity<IpProposalResponseDto> getProposalDetail(
+            @PathVariable String managerId,
+            @PathVariable Long id) {
+        return ResponseEntity.ok(ipextService.getProposalDetail(managerId, id));
     }
 
     // 3. IP 확장 제안 수정
-    // PATCH /api/v1/manager/ipext/{id}
-    @PatchMapping("/{id}")
+    // PATCH /api/v1/manager/ipext/{managerId}/{id}
+    @PatchMapping("/{managerId}/{id}")
     public ResponseEntity<String> updateProposal(
+            @PathVariable String managerId,
             @PathVariable Long id,
             @RequestBody IpProposalRequestDto request) {
-        ipextService.updateProposal(id, request);
+        ipextService.updateProposal(managerId, id, request);
         return ResponseEntity.ok("수정 완료");
     }
 

@@ -9,14 +9,14 @@ import java.util.List;
 
 public interface IpextService {
 
-    // [Manager] 목록 조회
-    Page<IpProposalResponseDto> getProposalList(Pageable pageable);
+    // [Manager] 목록 조회 (managerId 추가)
+    Page<IpProposalResponseDto> getProposalList(String managerId, Pageable pageable);
 
-    // [Manager] 상세 조회
-    IpProposalResponseDto getProposalDetail(Long id);
+    // [Manager] 상세 조회 (managerId 추가 - 권한 확인용)
+    IpProposalResponseDto getProposalDetail(String managerId, Long id);
 
-    // [Manager] 수정
-    void updateProposal(Long id, IpProposalRequestDto request);
+    // [Manager] 수정 (managerId 추가 - 권한 확인용)
+    void updateProposal(String managerId, Long id, IpProposalRequestDto request);
 
     // [Manager] 삭제
     void deleteProposal(Long id);

@@ -39,25 +39,28 @@ public class IpextServiceImpl implements IpextService {
     private final AiIpExtClient aiIpExtClient;
     private final IpProposalSaveService ipProposalSaveService;
 
+    // 1. IP 확장 조회 (목록) - ManagerId 기준
     @Override
-    public Page<IpProposalResponseDto> getProposalList(Pageable pageable) {
-        return ipProposalRepository.findAllActive(pageable)
+    public Page<IpProposalResponseDto> getProposalList(String managerId, Pageable pageable) {
+        return ipProposalRepository.findAllActiveByManagerId(managerId, pageable)
                 .map(IpProposalResponseDto::new);
     }
 
+    // 2. IP 확장 제안 상세 조회 - ManagerId & ID 기준
     @Override
-    public IpProposalResponseDto getProposalDetail(Long id) {
-        IpProposal proposal = ipProposalRepository.findActiveById(id)
-                .orElseThrow(() -> new NoSuchElementException("해당 제안서를 찾을 수 없습니다. ID: " + id));
+    public IpProposalResponseDto getProposalDetail(String managerId, Long id) {
+        IpProposal proposal = ipProposalRepository.findActiveByIdAndManagerId(id, managerId)
+                .orElseThrow(() -> new NoSuchElementException("해당 제안서를 찾을 수 없거나 접근 권한이 없습니다. ID: " + id));
 
         return new IpProposalResponseDto(proposal);
     }
 
+    // 3. IP 확장 제안 수정 - ManagerId & ID 기준
     @Override
     @Transactional
-    public void updateProposal(Long id, IpProposalRequestDto request) {
-        IpProposal proposal = ipProposalRepository.findActiveById(id)
-                .orElseThrow(() -> new NoSuchElementException("수정할 제안서를 찾을 수 없습니다. ID: " + id));
+    public void updateProposal(String managerId, Long id, IpProposalRequestDto request) {
+        IpProposal proposal = ipProposalRepository.findActiveByIdAndManagerId(id, managerId)
+                .orElseThrow(() -> new NoSuchElementException("수정할 제안서를 찾을 수 없거나 접근 권한이 없습니다. ID: " + id));
 
         // 엔티티 업데이트 로직
         proposal.updateFromRequest(
@@ -74,6 +77,7 @@ public class IpextServiceImpl implements IpextService {
         );
     }
 
+    // 4. IP 확장 제안 삭제
     @Override
     @Transactional
     public void deleteProposal(Long id) {
@@ -84,9 +88,13 @@ public class IpextServiceImpl implements IpextService {
         proposal.softDelete();
     }
 
+    // 5. IP 확장 제안 기획서 미리보기
     @Override
     public IpProposalResponseDto getProposalPreview(Long id) {
-        return getProposalDetail(id);
+        // 미리보기는 단순 ID 조회 (필요시 managerId 추가 가능)
+        IpProposal proposal = ipProposalRepository.findActiveById(id)
+                .orElseThrow(() -> new NoSuchElementException("해당 제안서를 찾을 수 없습니다. ID: " + id));
+        return new IpProposalResponseDto(proposal);
     }
 
     @Override
