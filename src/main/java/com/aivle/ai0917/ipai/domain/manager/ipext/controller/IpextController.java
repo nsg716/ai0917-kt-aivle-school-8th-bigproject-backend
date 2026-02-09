@@ -1,5 +1,6 @@
 package com.aivle.ai0917.ipai.domain.manager.ipext.controller;
 
+import com.aivle.ai0917.ipai.domain.manager.ipext.dto.IpFileDownloadDto;
 import com.aivle.ai0917.ipai.domain.manager.ipext.dto.IpProposalRequestDto;
 import com.aivle.ai0917.ipai.domain.manager.ipext.dto.IpProposalResponseDto;
 import com.aivle.ai0917.ipai.domain.manager.ipext.service.IpextService;
@@ -10,6 +11,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @RestController
@@ -84,5 +92,42 @@ public class IpextController {
     @GetMapping("/{workId}/authorworklorebook")
     public ResponseEntity<Object> getWorkLorebooks(@PathVariable Long workId) {
         return ResponseEntity.ok(ipextService.getWorkLorebooks(workId));
+    }
+
+    // 9. IP 확장 제안서 PDF 다운로드 (추가됨)
+    // GET /api/v1/manager/ipext/download/{id}
+    @GetMapping("/download/{id}")
+    public ResponseEntity<byte[]> downloadProposal(@PathVariable Long id) {
+        log.info("IP 확장 제안서 다운로드 요청: proposalId={}", id);
+
+        try {
+            // Service 호출하여 파일 데이터와 파일명 획득
+            IpFileDownloadDto fileData = ipextService.downloadProposal(id);
+
+            // 한글 파일명 인코딩 (브라우저 호환성)
+            String encodedFilename = URLEncoder.encode(fileData.getFilename(), StandardCharsets.UTF_8)
+                    .replaceAll("\\+", "%20"); // 공백 처리
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            // attachment: 다운로드 팝업, inline: 브라우저에서 바로 보기 (여기서는 다운로드로 설정)
+            headers.setContentDispositionFormData("attachment", encodedFilename);
+            headers.setContentLength(fileData.getContent().length);
+
+            return new ResponseEntity<>(fileData.getContent(), headers, HttpStatus.OK);
+
+        } catch (java.util.NoSuchElementException e) {
+            log.warn("제안서를 찾을 수 없음: proposalId={}", id);
+            return ResponseEntity.notFound().build();
+
+        } catch (IllegalStateException e) {
+            log.warn("파일이 준비되지 않음: proposalId={}, error={}", id, e.getMessage());
+            // 파일 경로는 DB에 없거나 실제 파일이 없는 경우 -> 409 Conflict 또는 404 Not Found
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(null);
+
+        } catch (Exception e) {
+            log.error("제안서 다운로드 실패: proposalId={}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

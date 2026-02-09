@@ -20,10 +20,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException; // [수정] 표준 예외 사용
 import java.util.stream.Collectors;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Slf4j
 @Service
@@ -183,53 +188,6 @@ public class IpextServiceImpl implements IpextService {
         return aiIpExtClient.checkLorebookConflict(request.getLorebooks());
     }
 
-//    // [등록] IP 확장 제안 등록 (DB 저장 + AI 요청)
-//    @Override
-//    @Transactional
-//    public AiIpExtClient.ProposalResponse createProposal(IpProposalRequestDto request) {
-//        if (request.getManagerId() == null) {
-//            throw new IllegalArgumentException("Manager ID는 필수입니다.");
-//        }
-//
-//        // 1. 제안서 정보 DB 저장
-//        IpProposal proposal = IpProposal.builder()
-//                .managerId(request.getManagerId())
-//                .title(request.getTitle())
-//                .lorebookIds(request.getLorebookIds())
-//                .targetFormat(request.getTargetFormat())
-//                .targetGenre(request.getTargetGenre())
-//                .worldSetting(request.getWorldSetting())
-//                .targetAges(request.getTargetAges())
-//                .targetGender(request.getTargetGender())
-//                .budgetScale(request.getBudgetScale())
-//                .toneAndManner(request.getToneAndManner())
-//                .mediaDetail(request.getMediaDetail())
-//                .addPrompt(request.getAddPrompt())
-//                .expMarket(request.getSummary1())
-//                .expCreative(request.getSummary2())
-//                .expVisual(request.getSummary3())
-//                .expWorld(request.getSummary4())
-//                .expBusiness(request.getSummary5())
-//                .expProduction(request.getSummary6())
-//                .status(IpProposal.Status.NEW)
-//                .build();
-//
-//        IpProposal saved = ipProposalRepository.save(proposal);
-//        ipProposalRepository.flush();
-//
-//        log.info("제안서 DB 저장 완료: ID={}", saved.getId());
-//
-//        // 2. AI 서버로 PDF 생성 요청
-//        log.info("AI 서버로 IP 기획서 PDF 생성 요청 시작. Proposal ID={}", saved.getId());
-//
-//        AiIpExtClient.ProposalResponse response = aiIpExtClient.createIpProposal(
-//                saved.getId(),
-//                request.getProcessedLorebooks()
-//        );
-//
-//        return response;
-//    }
-
     @Override
     public AiIpExtClient.ProposalResponse createProposal(IpProposalRequestDto request) {
         if (request.getManagerId() == null) {
@@ -248,5 +206,44 @@ public class IpextServiceImpl implements IpextService {
         );
 
         return response;
+    }
+
+    // [추가] IP 확장 제안서 다운로드 구현
+    @Override
+    public IpFileDownloadDto downloadProposal(Long id) {
+        // 1. 제안서 조회 (Status가 DELETED가 아닌 것)
+        IpProposal proposal = ipProposalRepository.findActiveById(id)
+                .orElseThrow(() -> new NoSuchElementException("해당 제안서를 찾을 수 없습니다. ID: " + id));
+
+        // 2. 파일 경로 확인
+        String filePath = proposal.getFilePath();
+        if (filePath == null || filePath.isBlank()) {
+            throw new IllegalStateException("생성된 PDF 파일 경로가 존재하지 않습니다. (아직 생성 중이거나 실패했을 수 있습니다.)");
+        }
+
+        // 3. 실제 파일 존재 여부 확인 및 읽기
+        try {
+            Path path = Paths.get(filePath);
+            File file = path.toFile();
+
+            if (!file.exists()) {
+                throw new IllegalStateException("서버 디스크에서 파일을 찾을 수 없습니다. 경로: " + filePath);
+            }
+
+            byte[] content = Files.readAllBytes(path);
+
+            // 4. 다운로드 파일명 생성 (제안서 제목 + .pdf)
+            // 공백을 언더바(_)로 치환하거나 안전한 파일명으로 변경
+            String downloadFilename = proposal.getTitle().replaceAll("\\s+", "_") + ".pdf";
+
+            return IpFileDownloadDto.builder()
+                    .filename(downloadFilename)
+                    .content(content)
+                    .build();
+
+        } catch (IOException e) {
+            log.error("파일 읽기 실패: filePath={}", filePath, e);
+            throw new RuntimeException("파일을 읽어오는 중 오류가 발생했습니다.", e);
+        }
     }
 }

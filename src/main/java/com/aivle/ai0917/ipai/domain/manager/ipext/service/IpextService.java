@@ -41,6 +41,7 @@ public interface IpextService {
     // 리턴 타입 변경: Long -> AiIpExtClient.ProposalResponse
     AiIpExtClient.ProposalResponse createProposal(IpProposalRequestDto request);
 
-
+    // [추가] IP 확장 제안서 다운로드 (파일 데이터 + 파일명 반환을 위해 DTO 사용 권장)
+    IpFileDownloadDto downloadProposal(Long id);
 
 }
