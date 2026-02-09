@@ -207,7 +207,7 @@ public class SignupController {
                 .httpOnly(true)
                 .secure(cookieSecure)
                 .path("/")
-                .sameSite("Lax")
+                .sameSite(sameSite)
                 .maxAge(Duration.ZERO)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, deletePending.toString());
@@ -230,3 +230,4 @@ public class SignupController {
         return t.isEmpty() ? null : t;
     }
 }
+
