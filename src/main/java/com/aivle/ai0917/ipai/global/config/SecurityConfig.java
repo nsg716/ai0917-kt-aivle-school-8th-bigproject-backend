@@ -2,6 +2,7 @@ package com.aivle.ai0917.ipai.global.config;
 
 import com.aivle.ai0917.ipai.global.security.jwt.JwtAuthFilter;
 import com.aivle.ai0917.ipai.global.security.jwt.JwtProvider;
+import jakarta.servlet.ServletException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -17,7 +18,14 @@ import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
+import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.csrf.CsrfToken;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.List;
 
 @Configuration
@@ -37,48 +45,7 @@ public class SecurityConfig {
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()) // ⭐ 핵심!
                         .sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy())
                         // ❌ /api/v1/csrf 는 ignore 하지 말자 (GET은 원래 검사 안 함)
-                        .ignoringRequestMatchers("/api/v1/csrf","/api/v1/hello",
-                                "/api/v1/ai/**",
-                                "/api/v1/auth/naver/**",
-                                "/api/v1/signup/**",
-                                "/error",
-                                "/",
-                                "/api/v1/hello",
-                                "/api/v1/ai/**",
-                                "/api/v1/api/test",
 
-                                "/api/v1/auth/naver/hello",
-                                "/api/v1/auth/naver/user",
-                                "/api/v1/auth/login",
-                                "/api/v1/api/test",
-
-                                "/api/v1/admin/sysnotice/**",
-                                "/api/v1/notice/**",
-                                "/api/v1/admin/dashboard/**",
-                                "/api/v1/admin/access/**",
-
-                                "/api/v1/author/dashboard/**",
-                                "/api/v1/author/manuscript/**",
-                                "/api/v1/author/**",
-
-                                "/api/v1/manager/iptrend/**",
-
-                                "/api/v1/author/**",
-                                "/error",
-                                "/api/v1/author/manager/**",
-                                "/api/v1/manager/**",
-                                "/api/v1/manager/dashboard/**",
-                                "/api/v1/manager/ipext/**",
-
-                                "/api/v1/author/works/**",
-                                "/api/v1/signup/naver/complete",
-                                "/api/v1/admin/sysnotice/**",
-                                "/api/v1/**",
-                                "/api/v1/auth/naver/login",
-                                "/api/v1/auth/naver/callback",
-                                "/api/v1/auth/me",
-                                "/api/v1/signup/**",
-                                "/api/v1/auth/logout")
 
                 )
 
@@ -91,6 +58,7 @@ public class SecurityConfig {
 
                         // CSRF 토큰 발급 엔드포인트 공개
                         .requestMatchers(HttpMethod.GET, "/api/v1/csrf").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/csrf/refresh").permitAll()
 
                         // 로그아웃 공개 (CSRF는 여기서도 필요하면 프론트가 보내면 됨)
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").permitAll()
@@ -145,6 +113,21 @@ public class SecurityConfig {
                 )
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable());
+
+//        http.addFilterAfter(new OncePerRequestFilter() {
+//            @Override
+//            protected void doFilterInternal(
+//                    HttpServletRequest request,
+//                    HttpServletResponse response,
+//                    FilterChain filterChain
+//            ) throws ServletException, IOException {
+//                CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
+//                if (csrfToken != null) {
+//                    csrfToken.getToken();
+//                }
+//                filterChain.doFilter(request, response);
+//            }
+//        }, CsrfFilter.class);
 
         // ✅ JWT 필터 (CSRF보다 먼저 돌게 하고 싶으면 CsrfFilter 앞에 둬도 됨)
         // 보통은 CSRF와 무관하지만, 확실히 하려면 아래처럼 CsrfFilter 앞에 둬도 OK
