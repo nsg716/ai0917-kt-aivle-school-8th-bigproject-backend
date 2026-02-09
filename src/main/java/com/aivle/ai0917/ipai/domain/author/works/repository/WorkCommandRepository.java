@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface WorkCommandRepository extends Repository<Work, Long> {
@@ -73,4 +74,9 @@ public interface WorkCommandRepository extends Repository<Work, Long> {
             @Param("deletedStatus") WorkStatus deletedStatus
     );
 
+
+
+    @Modifying(clearAutomatically = true)
+    @Query(value = "DELETE FROM works WHERE deleted_at <= :threshold", nativeQuery = true)
+    long deleteByDeletedAtBefore(@Param("threshold") LocalDateTime threshold);
 }

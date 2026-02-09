@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
+
 public interface SettingBookCommandRepository extends Repository<SettingBookView, Long> {
 
     // [수정] user_id 저장 시 ARRAY[:userId]로 감싸서 배열로 저장
@@ -51,4 +53,9 @@ public interface SettingBookCommandRepository extends Repository<SettingBookView
     @Transactional
     @Query(value = "UPDATE lorebooks SET deleted_at = NOW() WHERE id = :id", nativeQuery = true)
     int delete(@Param("id") Long id);
+
+
+    @Modifying(clearAutomatically = true)
+    @Query(value = "DELETE FROM lorebooks WHERE deleted_at <= :threshold", nativeQuery = true)
+    long deleteByDeletedAtBefore(@Param("threshold") LocalDateTime threshold);
 }

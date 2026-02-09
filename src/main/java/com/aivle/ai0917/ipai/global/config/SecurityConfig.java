@@ -41,9 +41,9 @@ public class SecurityConfig {
 
                 // ✅ CSRF ON (쿠키 저장소) + ✅ "원본 토큰" 방식으로 처리
                 .csrf(csrf -> csrf
-                        .csrfTokenRepository(csrfTokenRepository())
-                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()) // ⭐ 핵심!
-                        .sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy())
+                                .csrfTokenRepository(csrfTokenRepository())
+                                .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()) // ⭐ 핵심!
+                                .sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy())
                         // ❌ /api/v1/csrf 는 ignore 하지 말자 (GET은 원래 검사 안 함)
 
 
@@ -62,6 +62,7 @@ public class SecurityConfig {
 
                         // 로그아웃 공개 (CSRF는 여기서도 필요하면 프론트가 보내면 됨)
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").permitAll()
+
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh").permitAll()
                         // 공개 엔드포인트
                         .requestMatchers(

@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ManuscriptCommandRepository extends Repository<ManuscriptView, Long> {
@@ -128,4 +129,9 @@ public interface ManuscriptCommandRepository extends Repository<ManuscriptView, 
         """, nativeQuery = true)
     boolean existsPendingAnalysisExcludingCurrent(@Param("workId") Long workId, @Param("currentEpisode") Integer currentEpisode);
 
+
+
+    @Modifying(clearAutomatically = true)
+    @Query(value = "DELETE FROM episodes WHERE deleted_at <= :threshold", nativeQuery = true)
+    long deleteByDeletedAtBefore(@Param("threshold") LocalDateTime threshold);
 }
