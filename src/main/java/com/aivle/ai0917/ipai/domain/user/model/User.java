@@ -53,6 +53,9 @@ public class User {
     @Column(name = "last_activity_at")
     private LocalDateTime lastActivityAt;
 
+    @Column(name = "refresh_token_hash")
+    private String refreshTokenHash;
+
     @Column(name = "manager_integration_id", nullable =true)
     private String managerIntegrationId;
 

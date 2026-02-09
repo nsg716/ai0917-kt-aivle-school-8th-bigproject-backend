@@ -171,7 +171,7 @@ public class AuthController {
 
     // ✅ 로컬에서는 HTTP이므로 secure=false가 기본
     // ✅ AWS(HTTPS) 배포 시에는 secure=true 로 바꾸는 게 원칙
-    @Value("${security.cookie.secure:false}")
+    @Value("${security.cookie.secure:true}")
     private boolean cookieSecure;
 
     // ✅ 로컬은 Lax 권장

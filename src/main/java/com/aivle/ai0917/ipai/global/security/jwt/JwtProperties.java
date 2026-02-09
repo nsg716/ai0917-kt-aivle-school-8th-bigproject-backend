@@ -12,10 +12,13 @@ public class JwtProperties {
 
     private String secret;
     private long accessTokenExpMinutes;
+    private long refreshTokenExpDays = 14;
 
     public String getSecret() { return secret; }
     public long getAccessTokenExpMinutes() { return accessTokenExpMinutes; }
 
+    public long getRefreshTokenExpDays() { return refreshTokenExpDays; }
     public void setSecret(String secret) { this.secret = secret; }
     public void setAccessTokenExpMinutes(long accessTokenExpMinutes) { this.accessTokenExpMinutes = accessTokenExpMinutes; }
+    public void setRefreshTokenExpDays(long refreshTokenExpDays) { this.refreshTokenExpDays = refreshTokenExpDays; }
 }

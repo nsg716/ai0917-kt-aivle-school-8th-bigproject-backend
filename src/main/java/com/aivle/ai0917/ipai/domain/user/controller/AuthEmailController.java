@@ -8,6 +8,9 @@ import com.aivle.ai0917.ipai.infra.naver.dto.LoginRequest;
 import com.aivle.ai0917.ipai.domain.user.model.User;
 import com.aivle.ai0917.ipai.domain.user.repository.UserRepository;
 import com.aivle.ai0917.ipai.global.security.jwt.JwtProvider;
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -16,29 +19,37 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.Map;
+import java.security.MessageDigest;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthEmailController {
 
     private static final String ACCESS_COOKIE = "accessToken";
+    private static final String REFRESH_COOKIE = "refreshToken";
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final UserService userService;
 
-    @Value("${security.cookie.secure:false}")
+    @Value("${security.cookie.secure:true}")
     private boolean cookieSecure;
 
     @Value("${security.cookie.same-site:Lax}")
     private String sameSite;
 
     // accessToken 쿠키 유효시간(분). 필요하면 yml로 빼도 됨
-    @Value("${security.access.exp-minutes:60}")
+    @Value("${security.access.exp-minutes:30}")
     private long accessExpMinutes;
+
+    // refreshToken 쿠키 유효시간(일)
+    @Value("${security.refresh.exp-days:14}")
+    private long refreshExpDays;
 
     public AuthEmailController(UserRepository userRepository,
                                PasswordEncoder passwordEncoder,
@@ -87,6 +98,7 @@ public class AuthEmailController {
 
         // ✅ JWT 발급 + HttpOnly 쿠키 세팅
         String accessJwt = jwtProvider.createAccessToken(user.getId(), user.getRole());
+        String refreshJwt = jwtProvider.createRefreshToken(user.getId());
 
         ResponseCookie accessCookie = ResponseCookie.from(ACCESS_COOKIE, accessJwt)
                 .httpOnly(true)
@@ -96,7 +108,19 @@ public class AuthEmailController {
                 .maxAge(Duration.ofMinutes(accessExpMinutes))
                 .build();
 
+        ResponseCookie refreshCookie = ResponseCookie.from(REFRESH_COOKIE, refreshJwt)
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .path("/")
+                .sameSite(sameSite)
+                .maxAge(Duration.ofDays(refreshExpDays))
+                .build();
+
+        user.setRefreshTokenHash(hashToken(refreshJwt));
+        userRepository.save(user);
+
         response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
         return Map.of(
                 "ok", true,
@@ -109,39 +133,151 @@ public class AuthEmailController {
      * (선택) 로그아웃: accessToken 쿠키 삭제
      */
     @PostMapping("/logout")
-    public Map<String, Object> logout(HttpServletResponse response) {
-        ResponseCookie delete = ResponseCookie.from(ACCESS_COOKIE, "")
-                .httpOnly(true)
-                .secure(cookieSecure)
-                .path("/")
-                .sameSite(sameSite)
-                .maxAge(Duration.ZERO)
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, delete.toString());
-        return Map.of("ok", true);
+
+        public Map<String, Object> logout(HttpServletRequest request, HttpServletResponse response) {
+            Long userId = resolveUserIdFromCookies(request);
+            if (userId != null) {
+                userRepository.findById(userId).ifPresent(user -> {
+                    user.setRefreshTokenHash(null);
+                    userRepository.save(user);
+                });
+            }
+
+            ResponseCookie delete = ResponseCookie.from(ACCESS_COOKIE, "")
+                    .httpOnly(true)
+                    .secure(cookieSecure)
+                    .path("/")
+                    .sameSite(sameSite)
+                    .maxAge(Duration.ZERO)
+                    .build();
+            ResponseCookie refreshDelete = ResponseCookie.from(REFRESH_COOKIE, "")
+                    .httpOnly(true)
+                    .secure(cookieSecure)
+                    .path("/")
+                    .sameSite(sameSite)
+                    .maxAge(Duration.ZERO)
+                    .build();
+            response.addHeader(HttpHeaders.SET_COOKIE, delete.toString());
+            response.addHeader(HttpHeaders.SET_COOKIE, refreshDelete.toString());
+            return Map.of("ok", true);
+        }
+
+        /**
+         * refresh token으로 access token 재발급
+         */
+        @PostMapping("/refresh")
+        public Map<String, Object> refresh(HttpServletRequest request, HttpServletResponse response) {
+            String refreshToken = readCookie(request, REFRESH_COOKIE);
+            if (refreshToken == null || refreshToken.isBlank()) {
+                throw new RuntimeException("refresh token이 없습니다.");
+            }
+
+            Claims claims = jwtProvider.parse(refreshToken);
+            if (!"refresh".equals(String.valueOf(claims.get("type")))) {
+                throw new RuntimeException("refresh token이 아닙니다.");
+            }
+
+            Long userId = Long.valueOf(claims.getSubject());
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+            String refreshTokenHash = hashToken(refreshToken);
+            if (user.getRefreshTokenHash() == null || !user.getRefreshTokenHash().equals(refreshTokenHash)) {
+                throw new RuntimeException("refresh token이 만료되었거나 로그아웃되었습니다.");
+            }
+
+            String accessJwt = jwtProvider.createAccessToken(user.getId(), user.getRole());
+            String newRefreshJwt = jwtProvider.createRefreshToken(user.getId());
+
+            ResponseCookie accessCookie = ResponseCookie.from(ACCESS_COOKIE, accessJwt)
+                    .httpOnly(true)
+                    .secure(cookieSecure)
+                    .path("/")
+                    .sameSite(sameSite)
+                    .maxAge(Duration.ofMinutes(accessExpMinutes))
+                    .build();
+            ResponseCookie refreshCookie = ResponseCookie.from(REFRESH_COOKIE, newRefreshJwt)
+                    .httpOnly(true)
+                    .secure(cookieSecure)
+                    .path("/")
+                    .sameSite(sameSite)
+                    .maxAge(Duration.ofDays(refreshExpDays))
+                    .build();
+
+            user.setRefreshTokenHash(hashToken(newRefreshJwt));
+            userRepository.save(user);
+
+            response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+            response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+
+            return Map.of("ok", true);
+        }
+
+        /**
+         * 계정 탈퇴
+         * @param response
+         * @return
+         */
+        @PostMapping("/deactivated")
+        public Map<String, Object> withdraw(@CurrentUserId Long userId, HttpServletResponse response) {
+
+            // 1. DB 상태 변경 (Deactivated)
+            userService.deactivated(userId);
+
+            // 2. 로그아웃 처리 (쿠키 삭제)
+            ResponseCookie delete = ResponseCookie.from(ACCESS_COOKIE, "")
+                    .httpOnly(true)
+                    .secure(cookieSecure)
+                    .path("/")
+                    .sameSite(sameSite)
+                    .maxAge(Duration.ZERO)
+                    .build();
+            response.addHeader(HttpHeaders.SET_COOKIE, delete.toString());
+
+            return Map.of("ok", true, "message", "계정 탈퇴가 완료되었습니다.");
+        }
+
+        private Long resolveUserIdFromCookies(HttpServletRequest request) {
+            String accessToken = readCookie(request, ACCESS_COOKIE);
+            if (accessToken != null && !accessToken.isBlank()) {
+                try {
+                    Claims claims = jwtProvider.parse(accessToken);
+                    return Long.valueOf(claims.getSubject());
+                } catch (Exception ignored) {
+                    // fallback to refresh token
+                }
+            }
+
+            String refreshToken = readCookie(request, REFRESH_COOKIE);
+            if (refreshToken != null && !refreshToken.isBlank()) {
+                try {
+                    Claims claims = jwtProvider.parse(refreshToken);
+                    return Long.valueOf(claims.getSubject());
+                } catch (Exception ignored) {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        private String readCookie(HttpServletRequest request, String name) {
+            Cookie[] cookies = request.getCookies();
+            if (cookies == null) return null;
+            for (Cookie cookie : cookies) {
+                if (name.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+            return null;
+        }
+
+        private String hashToken(String token) {
+            try {
+                MessageDigest digest = MessageDigest.getInstance("SHA-256");
+                byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
+                return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+            } catch (Exception e) {
+                throw new RuntimeException("token hash 실패", e);
+            }
+        }
     }
-
-    /**
-     * 계정 탈퇴
-     * @param response
-     * @return
-     */
-    @PostMapping("/deactivated")
-    public Map<String, Object> withdraw(@CurrentUserId Long userId, HttpServletResponse response) {
-
-        // 1. DB 상태 변경 (Deactivated)
-        userService.deactivated(userId);
-
-        // 2. 로그아웃 처리 (쿠키 삭제)
-        ResponseCookie delete = ResponseCookie.from(ACCESS_COOKIE, "")
-                .httpOnly(true)
-                .secure(cookieSecure)
-                .path("/")
-                .sameSite(sameSite)
-                .maxAge(Duration.ZERO)
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, delete.toString());
-
-        return Map.of("ok", true, "message", "계정 탈퇴가 완료되었습니다.");
-    }
-}

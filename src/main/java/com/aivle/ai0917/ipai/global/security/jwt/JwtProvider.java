@@ -36,7 +36,22 @@ public class JwtProvider {
 
         return Jwts.builder()
                 .subject(String.valueOf(userId)) // sub = 우리 서비스 userId
-                .claim("role", role)              // 권한
+                .claim("role", role)
+                .claim("type", "access")
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(exp))
+                .signWith(key)
+                .compact();
+    }
+
+    /** Refresh Token(JWT) 생성 */
+    public String createRefreshToken(Long userId) {
+        Instant now = Instant.now();
+        Instant exp = now.plusSeconds(props.getRefreshTokenExpDays() * 24 * 60 * 60);
+
+        return Jwts.builder()
+                .subject(String.valueOf(userId))
+                .claim("type", "refresh")// 권한
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(exp))
                 .signWith(key)
