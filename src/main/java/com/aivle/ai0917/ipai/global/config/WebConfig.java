@@ -29,26 +29,26 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
 
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOriginPatterns("http://localhost:5173")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
-                // ✅ CSRF/JWT/CORS에서 실제로 쓰는 헤더들 명시
-                .allowedHeaders(
-                        "Content-Type",
-                        "Authorization",
-                        "X-XSRF-TOKEN",
-                        "XSRF-TOKEN",
-                        "Accept",
-                        "Origin"
-                )
-                // ✅ 브라우저가 Set-Cookie 같은 응답 헤더를 “접근 가능”하게
-                .exposedHeaders(
-                        "Set-Cookie"
-                )
-                .allowCredentials(true)
-                .maxAge(3600);
-    }
+//    @Override
+//    public void addCorsMappings(CorsRegistry registry) {
+//        registry.addMapping("/**")
+//                .allowedOriginPatterns("http://localhost:5173")
+//                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+//                // ✅ CSRF/JWT/CORS에서 실제로 쓰는 헤더들 명시
+//                .allowedHeaders(
+//                        "Content-Type",
+//                        "Authorization",
+//                        "X-XSRF-TOKEN",
+//                        "XSRF-TOKEN",
+//                        "Accept",
+//                        "Origin"
+//                )
+//                // ✅ 브라우저가 Set-Cookie 같은 응답 헤더를 “접근 가능”하게
+//                .exposedHeaders(
+//                        "Set-Cookie"
+//                )
+//                .allowCredentials(true)
+//                .maxAge(3600);
+//    }
 
 }
