@@ -5,13 +5,20 @@ import com.aivle.ai0917.ipai.global.security.jwt.JwtProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.config.Customizer;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -21,28 +28,21 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http, JwtProvider jwtProvider) throws Exception {
 
         http
-                // CORS는 WebMvcConfigurer 설정을 따르도록 켜주는 게 안전
-                .cors(Customizer.withDefaults())
+                // ✅ Security 레벨 CORS
+                .cors(cors -> {})
 
-                // ✅ HttpOnly 쿠키 인증이면 CSRF 켜는 것을 권장
-                // 프론트는 XSRF-TOKEN 쿠키를 읽어서 X-XSRF-TOKEN 헤더로 보내면 됨
+                // ✅ CSRF ON (쿠키 저장소) + ✅ "원본 토큰" 방식으로 처리
                 .csrf(csrf -> csrf
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        // OAuth 콜백은 GET이라 보통 CSRF 영향 없음.
-                        // 필요하면 특정 경로만 ignore도 가능 (원하면 아래처럼)
-                        // .ignoringRequestMatchers("/api/v1/auth/naver/**")
-                        .ignoringRequestMatchers(
-                                "/api/v1/signup/naver/complete",
-                                "/api/v1/admin/sysnotice/**",
-                                "/api/v1/**"
-                        )
-                )
-
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                .authorizeHttpRequests(auth -> auth
-                        // 공개 API만 정확히 오픈
-                        .requestMatchers(
+                        .csrfTokenRepository(csrfTokenRepository())
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()) // ⭐ 핵심!
+                        .sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy())
+                        // ❌ /api/v1/csrf 는 ignore 하지 말자 (GET은 원래 검사 안 함)
+                        .ignoringRequestMatchers("/api/v1/csrf","/api/v1/hello",
+                                "/api/v1/ai/**",
+                                "/api/v1/auth/naver/**",
+                                "/api/v1/signup/**",
+                                "/error",
+                                "/",
                                 "/api/v1/hello",
                                 "/api/v1/ai/**",
                                 "/api/v1/api/test",
@@ -70,31 +70,122 @@ public class SecurityConfig {
                                 "/api/v1/manager/dashboard/**",
                                 "/api/v1/manager/ipext/**",
 
-                                "/api/v1/author/works/**"
-
-                        ).permitAll()
-
-                        // 네이버 OAuth 시작/콜백은 공개
-                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/author/works/**",
+                                "/api/v1/signup/naver/complete",
+                                "/api/v1/admin/sysnotice/**",
+                                "/api/v1/**",
                                 "/api/v1/auth/naver/login",
-                                "/api/v1/auth/naver/callback"
+                                "/api/v1/auth/naver/callback",
+                                "/api/v1/auth/me",
+                                "/api/v1/signup/**",
+                                "/api/v1/auth/logout")
+
+                )
+
+                // ✅ 세션 안 씀
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                .authorizeHttpRequests(auth -> auth
+                        // ✅ Preflight는 항상 통과
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // CSRF 토큰 발급 엔드포인트 공개
+                        .requestMatchers(HttpMethod.GET, "/api/v1/csrf").permitAll()
+
+                        // 로그아웃 공개 (CSRF는 여기서도 필요하면 프론트가 보내면 됨)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").permitAll()
+
+                        // 공개 엔드포인트
+                        .requestMatchers(
+                                "/api/v1/hello",
+                                "/api/v1/ai/**",
+                                "/api/v1/auth/naver/**",
+                                "/api/v1/signup/**",
+                                "/error",
+                                "/",
+                                "/api/v1/hello",
+                                "/api/v1/ai/**",
+                                "/api/v1/api/test",
+
+                                "/api/v1/auth/naver/hello",
+                                "/api/v1/auth/naver/user",
+                                "/api/v1/auth/login",
+                                "/api/v1/api/test",
+
+                                "/api/v1/admin/sysnotice/**",
+                                "/api/v1/notice/**",
+                                "/api/v1/admin/dashboard/**",
+                                "/api/v1/admin/access/**",
+
+                                "/api/v1/author/dashboard/**",
+                                "/api/v1/author/manuscript/**",
+                                "/api/v1/author/**",
+
+                                "/api/v1/manager/iptrend/**",
+
+                                "/api/v1/author/**",
+                                "/error",
+                                "/api/v1/author/manager/**",
+                                "/api/v1/manager/**",
+                                "/api/v1/manager/dashboard/**",
+                                "/api/v1/manager/ipext/**",
+
+                                "/api/v1/author/works/**",
+                                "/api/v1/signup/naver/complete",
+                                "/api/v1/admin/sysnotice/**",
+                                "/api/v1/**",
+                                "/api/v1/auth/naver/login",
+                                "/api/v1/auth/naver/callback",
+                                "/api/v1/auth/me",
+                                "/api/v1/signup/**"
+
                         ).permitAll()
 
-                        // signup 진행(이메일 인증/가입완료)은 공개지만 CSRF 토큰은 요구될 수 있음
-                        .requestMatchers("/api/v1/signup/**").permitAll()
-
-                        // 네가 확정한 auth/me 도 공개로 둘지, 인증 필요로 둘지 정책 선택
-                        // - pendingSignup 용도면 공개 OK (쿠키 없으면 에러)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").permitAll()
-
-                        // 그 외는 인증 필요
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable());
 
-        http.addFilterBefore(new JwtAuthFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class);
+        // ✅ JWT 필터 (CSRF보다 먼저 돌게 하고 싶으면 CsrfFilter 앞에 둬도 됨)
+        // 보통은 CSRF와 무관하지만, 확실히 하려면 아래처럼 CsrfFilter 앞에 둬도 OK
+        http.addFilterBefore(new JwtAuthFilter(jwtProvider), CsrfFilter.class);
+        // 또는 기존처럼:
+        // http.addFilterBefore(new JwtAuthFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    // ✅ CSRF 쿠키/헤더 이름 & Path 고정
+    @Bean
+    public CookieCsrfTokenRepository csrfTokenRepository() {
+        CookieCsrfTokenRepository repo = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        repo.setCookiePath("/");              // ✅ 핵심 (경로 꼬임 방지)
+        repo.setCookieName("XSRF-TOKEN");     // 프론트에서 읽는 쿠키 이름
+        repo.setHeaderName("X-XSRF-TOKEN");   // 프론트가 보내는 헤더 이름
+        return repo;
+    }
+
+    // ✅ CORS 설정
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOriginPatterns(List.of("http://localhost:5173"));
+        config.setAllowedMethods(List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
+        config.setAllowCredentials(true);
+
+        config.setAllowedHeaders(List.of(
+                "Content-Type",
+                "Authorization",
+                "X-XSRF-TOKEN",
+                "XSRF-TOKEN",
+                "Accept",
+                "Origin"
+        ));
+
+        config.setExposedHeaders(List.of("Set-Cookie"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }
