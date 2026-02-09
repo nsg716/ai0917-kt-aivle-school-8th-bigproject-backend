@@ -36,8 +36,7 @@ public class SecurityConfig {
                                 .csrfTokenRepository(csrfTokenRepository())
                                 .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()) // ⭐ 핵심!
                                 .sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy())
-                        // ❌ /api/v1/csrf 는 ignore 하지 말자 (GET은 원래 검사 안 함)
-                        // .ignoringRequestMatchers("/api/v1/csrf")
+
                 )
 
                 // ✅ 세션 안 씀
