@@ -36,6 +36,49 @@ public class SecurityConfig {
                                 .csrfTokenRepository(csrfTokenRepository())
                                 .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()) // ⭐ 핵심!
                                 .sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy())
+                        // ❌ /api/v1/csrf 는 ignore 하지 말자 (GET은 원래 검사 안 함)
+                        .ignoringRequestMatchers("/api/v1/csrf","/api/v1/hello",
+                                "/api/v1/ai/**",
+                                "/api/v1/auth/naver/**",
+                                "/api/v1/signup/**",
+                                "/error",
+                                "/",
+                                "/api/v1/hello",
+                                "/api/v1/ai/**",
+                                "/api/v1/api/test",
+
+                                "/api/v1/auth/naver/hello",
+                                "/api/v1/auth/naver/user",
+                                "/api/v1/auth/login",
+                                "/api/v1/api/test",
+
+                                "/api/v1/admin/sysnotice/**",
+                                "/api/v1/notice/**",
+                                "/api/v1/admin/dashboard/**",
+                                "/api/v1/admin/access/**",
+
+                                "/api/v1/author/dashboard/**",
+                                "/api/v1/author/manuscript/**",
+                                "/api/v1/author/**",
+
+                                "/api/v1/manager/iptrend/**",
+
+                                "/api/v1/author/**",
+                                "/error",
+                                "/api/v1/author/manager/**",
+                                "/api/v1/manager/**",
+                                "/api/v1/manager/dashboard/**",
+                                "/api/v1/manager/ipext/**",
+
+                                "/api/v1/author/works/**",
+                                "/api/v1/signup/naver/complete",
+                                "/api/v1/admin/sysnotice/**",
+                                "/api/v1/**",
+                                "/api/v1/auth/naver/login",
+                                "/api/v1/auth/naver/callback",
+                                "/api/v1/auth/me",
+                                "/api/v1/signup/**",
+                                "/api/v1/auth/logout")
 
                 )
 
