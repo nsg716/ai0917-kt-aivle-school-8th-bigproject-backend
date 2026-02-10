@@ -41,9 +41,11 @@ public class AiLorebookController {
             @PathVariable String title,
             @PathVariable String tags,
             @PathVariable Long id,
+            @RequestParam Long workId, // [추가] URL 파라미터로 workId 받기
             @RequestBody SettingBookUpdateRequestDto request
     ) {
-        lorebookService.update(id, userId, request);
+        // [수정] workId를 서비스로 전달
+        lorebookService.update(id, userId, workId, request);
         return ResponseEntity.ok("수정 완료");
     }
 

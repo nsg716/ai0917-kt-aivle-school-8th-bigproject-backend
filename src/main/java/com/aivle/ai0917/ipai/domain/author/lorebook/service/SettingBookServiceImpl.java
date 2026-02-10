@@ -5,6 +5,8 @@ import com.aivle.ai0917.ipai.domain.author.lorebook.client.AiLorebookClient;
 import com.aivle.ai0917.ipai.domain.author.lorebook.dto.*;
 import com.aivle.ai0917.ipai.domain.author.lorebook.repository.SettingBookCommandRepository;
 import com.aivle.ai0917.ipai.domain.author.lorebook.repository.SettingBookViewRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,6 +29,7 @@ public class SettingBookServiceImpl implements SettingBookService {
     private final SettingBookCommandRepository commandRepository;
     private final AiLorebookClient aiLorebookClient;
     private final ManuscriptCommandRepository manuscriptCommandRepository;
+    private final ObjectMapper objectMapper;
 
     @Override
     public Page<SettingBookResponseDto> getLorebookList(String userId, Long workId, Pageable pageable) {
@@ -45,64 +48,108 @@ public class SettingBookServiceImpl implements SettingBookService {
     @Override
     @Transactional
     public AiLorebookClient.ManualComparisonResponse create(String userId, Long workId, SettingBookCreateRequestDto request) {
-        // 1. DB에 저장 (우선 저장)
-        Integer[] epNumArray = null;
-        if (request.getEpisode() != null) {
-            epNumArray = request.getEpisode().toArray(new Integer[0]);
-        }
 
-        commandRepository.insert(
-                userId,
-                workId,
-                request.getCategory(),
-                request.getKeyword(),
-                request.getSettings(),
-                epNumArray
-        );
-        log.info("설정집 DB 저장 완료: WorkId={}, Keyword={}", workId, request.getKeyword());
+        // 1. 설정 내용(JSON String)을 Map으로 변환
+        Map<String, Object> settingMap = parseSettingJson(request.getSettings());
 
-        // 2. AI 서버로 비교 요청 준비 (연쇄 동작)
-        // 요청 형식:
-        // {
-        //   "check": { "category": ["keyword"] },
-        //   "user_id": "...",
-        //   "work_id": "...",
-        //   "category": { "keyword": "settings_content" }
-        // }
-        Map<String, Object> aiRequest = new HashMap<>();
+        // 2. AI 서버로 수동 저장 요청 (DB 저장을 AI 서버에 위임)
+        AiLorebookClient.ManualLorebookRequest insertRequest = AiLorebookClient.ManualLorebookRequest.builder()
+                .workId(workId)
+                .userId(userId)
+                .keyword(request.getKeyword())
+                .category(request.getCategory())
+                .epNum(request.getEpisode()) // List<Integer> 그대로 전달
+                .setting(settingMap)
+                .build();
 
-        // 2-1. check 필드 생성
-        Map<String, List<String>> checkMap = new HashMap<>();
-        checkMap.put(request.getCategory(), List.of(request.getKeyword()));
-        aiRequest.put("check", checkMap);
-
-        // 2-2. 기본 ID 정보
-        aiRequest.put("user_id", userId);
-        aiRequest.put("work_id", workId);
-
-        // 2-3. 실제 설정 내용 (카테고리를 키로 사용)
-        Map<String, String> contentMap = new HashMap<>();
-        contentMap.put(request.getKeyword(), request.getSettings());
-        aiRequest.put(request.getCategory(), contentMap);
-
-        // 3. AI 호출 및 결과 반환
-        log.info("AI 설정집 비교 분석 요청 시작...");
-        return aiLorebookClient.manualComparison(aiRequest);
+        aiLorebookClient.manualInsert(insertRequest);
+        log.info("AI 서버를 통한 설정집 저장 완료: Keyword={}", request.getKeyword());
+        return new AiLorebookClient.ManualComparisonResponse();
     }
+
 
     @Override
     @Transactional
-    public void update(Long id, String userId, SettingBookUpdateRequestDto request) {
-        int updated = commandRepository.update(
-                id,
-                userId,
-                request.getKeyword(),
-                request.getSettings()
-        );
-        if (updated == 0) {
-            throw new RuntimeException("수정할 설정집이 없거나 권한이 없습니다. ID: " + id);
-        }
+    public void update(Long id, String userId, Long workId, SettingBookUpdateRequestDto request) { // [수정] workId 추가
+
+        // 1. 설정 내용 파싱
+        Map<String, Object> settingMap = parseSettingJson(request.getSettings());
+
+        // 2. AI 서버로 수동 수정 요청
+        AiLorebookClient.ManualLorebookRequest updateRequest = AiLorebookClient.ManualLorebookRequest.builder()
+                .loreId(id)
+                .userId(userId)
+                .workId(workId) // [수정] 이제 전달받은 workId를 여기에 넣습니다.
+                .keyword(request.getKeyword())
+                .category(request.getCategory())
+                .epNum(request.getEpisode())
+                .setting(settingMap)
+                .build();
+
+        aiLorebookClient.manualUpdate(updateRequest);
+        log.info("AI 서버를 통한 설정집 수정 완료: ID={}, WorkID={}", id, workId);
     }
+//    @Override
+//    @Transactional
+//    public AiLorebookClient.ManualComparisonResponse create(String userId, Long workId, SettingBookCreateRequestDto request) {
+//        // 1. DB에 저장 (우선 저장)
+//        Integer[] epNumArray = null;
+//        if (request.getEpisode() != null) {
+//            epNumArray = request.getEpisode().toArray(new Integer[0]);
+//        }
+//
+//        commandRepository.insert(
+//                userId,
+//                workId,
+//                request.getCategory(),
+//                request.getKeyword(),
+//                request.getSettings(),
+//                epNumArray
+//        );
+//        log.info("설정집 DB 저장 완료: WorkId={}, Keyword={}", workId, request.getKeyword());
+//
+//        // 2. AI 서버로 비교 요청 준비 (연쇄 동작)
+//        // 요청 형식:
+//        // {
+//        //   "check": { "category": ["keyword"] },
+//        //   "user_id": "...",
+//        //   "work_id": "...",
+//        //   "category": { "keyword": "settings_content" }
+//        // }
+//        Map<String, Object> aiRequest = new HashMap<>();
+//
+//        // 2-1. check 필드 생성
+//        Map<String, List<String>> checkMap = new HashMap<>();
+//        checkMap.put(request.getCategory(), List.of(request.getKeyword()));
+//        aiRequest.put("check", checkMap);
+//
+//        // 2-2. 기본 ID 정보
+//        aiRequest.put("user_id", userId);
+//        aiRequest.put("work_id", workId);
+//
+//        // 2-3. 실제 설정 내용 (카테고리를 키로 사용)
+//        Map<String, String> contentMap = new HashMap<>();
+//        contentMap.put(request.getKeyword(), request.getSettings());
+//        aiRequest.put(request.getCategory(), contentMap);
+//
+//        // 3. AI 호출 및 결과 반환
+//        log.info("AI 설정집 비교 분석 요청 시작...");
+//        return aiLorebookClient.manualComparison(aiRequest);
+//    }
+
+//    @Override
+//    @Transactional
+//    public void update(Long id, String userId, SettingBookUpdateRequestDto request) {
+//        int updated = commandRepository.update(
+//                id,
+//                userId,
+//                request.getKeyword(),
+//                request.getSettings()
+//        );
+//        if (updated == 0) {
+//            throw new RuntimeException("수정할 설정집이 없거나 권한이 없습니다. ID: " + id);
+//        }
+//    }
 
     @Override
     @Transactional
@@ -156,5 +203,17 @@ public class SettingBookServiceImpl implements SettingBookService {
         }
 
         return response;
+    }
+
+    private Map<String, Object> parseSettingJson(String jsonString) {
+        try {
+            return objectMapper.readValue(jsonString, Map.class);
+        } catch (JsonProcessingException e) {
+            log.error("설정 JSON 파싱 오류: {}", e.getMessage());
+            // 파싱 실패 시, 단순 텍스트로라도 보내기 위해 래핑하거나 에러 처리
+            Map<String, Object> fallback = new HashMap<>();
+            fallback.put("content", jsonString);
+            return fallback;
+        }
     }
 }
