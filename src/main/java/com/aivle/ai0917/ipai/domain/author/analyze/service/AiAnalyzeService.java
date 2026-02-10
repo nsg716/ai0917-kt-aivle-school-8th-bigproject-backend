@@ -1,5 +1,7 @@
 package com.aivle.ai0917.ipai.domain.author.analyze.service;
 
+import com.aivle.ai0917.ipai.domain.author.analyze.dto.EpisodeBriefDto;
+
 import java.util.List;
 
 public interface AiAnalyzeService {
@@ -13,4 +15,6 @@ public interface AiAnalyzeService {
      * 타임라인 분석
      */
     Object analyzeTimeline(Long workId, String userId, List<Integer> targetList);
+
+    List<EpisodeBriefDto> getTimelineEpisodes(Long workId);
 }
