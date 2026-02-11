@@ -26,4 +26,10 @@ public interface IpProposalRepository extends JpaRepository<IpProposal, Long> {
     // [수정] ID와 ManagerId로 상세 조회 (본인 제안서만 접근 가능하도록)
     @Query("SELECT p FROM IpProposal p WHERE p.id = :id AND p.managerId = :managerId AND p.status <> 'DELETED'")
     Optional<IpProposal> findActiveByIdAndManagerId(@Param("id") Long id, @Param("managerId") String managerId);
+
+    @Query(value = "SELECT * FROM ip_proposal p WHERE :authorId = ANY(p.match_author_id) AND p.status <> 'DELETED'", nativeQuery = true)
+    Page<IpProposal> findAllByMatchAuthorIdContains(@Param("authorId") String authorId, Pageable pageable);
+
+    @Query(value = "SELECT * FROM ip_proposal p WHERE p.id = :id AND :authorId = ANY(p.match_author_id) AND p.status <> 'DELETED'", nativeQuery = true)
+    Optional<IpProposal> findActiveByIdAndAuthorId(@Param("id") Long id, @Param("authorId") String authorId);
 }

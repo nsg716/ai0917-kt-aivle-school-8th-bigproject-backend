@@ -1,6 +1,8 @@
 package com.aivle.ai0917.ipai.domain.manager.ipext.service;
 
 import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
+import com.aivle.ai0917.ipai.domain.author.ipextcomment.model.IpProposalComment;
+import com.aivle.ai0917.ipai.domain.author.ipextcomment.repository.IpProposalCommentRepository;
 import com.aivle.ai0917.ipai.domain.author.lorebook.model.SettingBookView;
 import com.aivle.ai0917.ipai.domain.author.lorebook.repository.SettingBookViewRepository;
 import com.aivle.ai0917.ipai.domain.author.works.model.Work;
@@ -45,6 +47,7 @@ public class IpextServiceImpl implements IpextService {
     private final AiIpExtClient aiIpExtClient;
     private final IpProposalSaveService ipProposalSaveService;
     private final ManagerNoticeService managerNoticeService;
+    private final IpProposalCommentRepository ipProposalCommentRepository;
 
     // 1. IP 확장 조회 (목록) - ManagerId 기준
     @Override
@@ -82,6 +85,19 @@ public class IpextServiceImpl implements IpextService {
                 request.getMediaDetail(),
                 request.getAddPrompt()
         );
+
+        // 2. [추가] 해당 제안서에 달린 기존 코멘트들을 '미사용(ARCHIVED)' 상태로 변경
+        List<IpProposalComment> comments = ipProposalCommentRepository.findAllByIpProposalId(id);
+
+        if (!comments.isEmpty()) {
+            for (IpProposalComment comment : comments) {
+                // 이미 ARCHIVED가 아닌 경우에만 변경 (선택사항)
+                if (comment.getStatus() != IpProposalComment.Status.ARCHIVED) {
+                    comment.archive(); // Status.ARCHIVED 로 변경
+                }
+            }
+            log.info("제안서(ID:{}) 수정으로 인해 관련 코멘트 {}개를 미사용 처리했습니다.", id, comments.size());
+        }
     }
 
     // 4. IP 확장 제안 삭제

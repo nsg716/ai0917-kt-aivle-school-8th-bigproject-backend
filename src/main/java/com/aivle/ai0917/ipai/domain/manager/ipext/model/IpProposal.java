@@ -1,5 +1,6 @@
 package com.aivle.ai0917.ipai.domain.manager.ipext.model;
 
+import com.aivle.ai0917.ipai.domain.author.ipextcomment.model.IpProposalComment;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import lombok.*;
@@ -111,6 +112,11 @@ private String expProduction;
     @Column(name = "file_size") private Long fileSize;
     @Column(name = "original_filename", length = 255) private String originalFilename;
 
+
+    @Column(name = "match_author_id", columnDefinition = "varchar[]")
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Builder.Default
+    private List<String> matchAuthorIds = new ArrayList<>();
     // ========== 코멘트 관계 ==========
     @OneToMany(mappedBy = "ipProposal", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
