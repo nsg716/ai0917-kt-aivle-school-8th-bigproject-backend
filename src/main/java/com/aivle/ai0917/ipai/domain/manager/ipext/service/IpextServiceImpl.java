@@ -8,6 +8,8 @@ import com.aivle.ai0917.ipai.domain.author.works.model.WorkStatus;
 import com.aivle.ai0917.ipai.domain.author.works.repository.WorkCommandRepository;
 import com.aivle.ai0917.ipai.domain.author.works.repository.WorkRepository;
 import com.aivle.ai0917.ipai.domain.manager.authors.repository.ManagerAuthorRepository;
+import com.aivle.ai0917.ipai.domain.manager.info.dto.ManagerNoticeDto; // [추가]
+import com.aivle.ai0917.ipai.domain.manager.info.service.ManagerNoticeService;
 import com.aivle.ai0917.ipai.domain.manager.ipext.client.AiIpExtClient;
 import com.aivle.ai0917.ipai.domain.manager.ipext.dto.*;
 import com.aivle.ai0917.ipai.domain.manager.ipext.model.IpProposal;
@@ -43,6 +45,7 @@ public class IpextServiceImpl implements IpextService {
     private final SettingBookViewRepository settingBookViewRepository;
     private final AiIpExtClient aiIpExtClient;
     private final IpProposalSaveService ipProposalSaveService;
+    private final ManagerNoticeService managerNoticeService;
 
     // 1. IP 확장 조회 (목록) - ManagerId 기준
     @Override
@@ -189,6 +192,7 @@ public class IpextServiceImpl implements IpextService {
     }
 
     @Override
+    @Transactional
     public AiIpExtClient.ProposalResponse createProposal(IpProposalRequestDto request) {
         if (request.getManagerId() == null) {
             throw new IllegalArgumentException("Manager ID는 필수입니다.");
@@ -203,6 +207,14 @@ public class IpextServiceImpl implements IpextService {
         AiIpExtClient.ProposalResponse response = aiIpExtClient.createIpProposal(
                 proposalId,
                 request.getProcessedLorebooks()
+        );
+
+        managerNoticeService.sendNotice(
+                request.getManagerId(), // 수신자: 매니저
+                ManagerNoticeDto.ManagerNoticeSource.IP_EXT,
+                "IP 확장 제안서 생성 완료",
+                "'" + request.getTitle() + "' 제안서(PDF) 생성이 완료되었습니다.",
+                "/manager/ipext/" + proposalId // 클릭 시 제안서 상세/다운로드 페이지
         );
 
         return response;

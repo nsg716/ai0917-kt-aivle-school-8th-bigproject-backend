@@ -1,9 +1,14 @@
 package com.aivle.ai0917.ipai.domain.manager.iptrend.service;
 
+import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
+import com.aivle.ai0917.ipai.domain.manager.info.dto.ManagerNoticeDto;
+import com.aivle.ai0917.ipai.domain.manager.info.service.ManagerNoticeService;
 import com.aivle.ai0917.ipai.domain.manager.iptrend.dto.IpTrendResponseDto.*;
 import com.aivle.ai0917.ipai.domain.manager.iptrend.model.IpTrendReport;
 import com.aivle.ai0917.ipai.domain.manager.iptrend.model.IpTrendReport.ReportStatus;
 import com.aivle.ai0917.ipai.domain.manager.iptrend.repository.IpTrendReportRepository;
+import com.aivle.ai0917.ipai.domain.user.model.User;
+import com.aivle.ai0917.ipai.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +36,8 @@ import java.util.stream.Collectors;
 public class IpTrendServiceImpl implements IpTrendService {
 
     private final IpTrendReportRepository reportRepository;
+    private final ManagerNoticeService managerNoticeService;
+    private final UserRepository userRepository;
 
     @Value("${iptrend.python.script.path:webnovel_trend_analysis_and_report.py}")
     private String pythonScriptPath;
@@ -350,6 +357,19 @@ public class IpTrendServiceImpl implements IpTrendService {
             log.info("리포트 생성 성공: reportId={}", reportId);
             log.info("===============================================");
 
+
+            List<User> managers = userRepository.findAllByRole(UserRole.Manager);
+
+            for (User manager : managers) {
+                managerNoticeService.sendNotice(
+                        manager.getIntegrationId(), // String ID
+                        ManagerNoticeDto.ManagerNoticeSource.IP_EXTREND,
+                        "트렌드 리포트 생성 완료",
+                        report.getFileName() + " 생성이 완료되었습니다.",
+                        "/manager/iptrend/preview/" + reportId // 상세/프리뷰 페이지 이동
+                );
+            }
+            log.info("모든 매니저({}명)에게 성공 알림 전송 완료", managers.size());
         } catch (FileNotFoundException e) {
             log.error("❌ PDF 파일을 찾을 수 없음: reportId={}", reportId, e);
             updateReportFailure(reportId, "파일 없음: " + e.getMessage());
@@ -372,6 +392,19 @@ public class IpTrendServiceImpl implements IpTrendService {
         reportRepository.save(report);
 
         log.error("리포트 생성 실패: reportId={}, error={}", reportId, errorMessage);
+
+        List<User> managers = userRepository.findAllByRole(UserRole.Manager);
+
+        for (User manager : managers) {
+            managerNoticeService.sendNotice(
+                    manager.getIntegrationId(), // String ID
+                    ManagerNoticeDto.ManagerNoticeSource.IP_EXTREND,
+                    "트렌드 리포트 생성 실패",
+                    "오류가 발생했습니다: " + errorMessage,
+                    "/manager/iptrend"
+            );
+        }
+        log.info("모든 매니저({}명)에게 실패 알림 전송 완료", managers.size());
     }
 
     /**

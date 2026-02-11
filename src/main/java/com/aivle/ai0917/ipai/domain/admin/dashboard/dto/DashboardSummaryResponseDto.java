@@ -15,6 +15,7 @@ public class DashboardSummaryResponseDto {
     private ServerStatusDto serverStatus;
     private Long totalUsers;
     private Long savedArtworks;
+    private Long savedLorebooks;
     private Integer activeSessions;
 }
 

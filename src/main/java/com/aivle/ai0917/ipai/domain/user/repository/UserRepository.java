@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -26,6 +27,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByNameAndSiteEmail(String name, String siteEmail);
 
 
+    List<User> findAllByRole(UserRole role);
 
     // 전체 사용자 수
     @Query("SELECT COUNT(u) FROM User u")
@@ -58,4 +60,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Modifying
     @Query("DELETE FROM User u WHERE u.role = :role AND u.lastActivityAt <= :threshold")
     int deleteExpiredDeactivatedUsers(@Param("role") UserRole role, @Param("threshold") LocalDateTime threshold);
+
+    boolean existsByIntegrationId(String integrationId);
 }

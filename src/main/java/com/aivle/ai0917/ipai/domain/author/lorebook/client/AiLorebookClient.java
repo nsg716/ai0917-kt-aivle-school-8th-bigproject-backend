@@ -61,24 +61,7 @@ public class AiLorebookClient {
         }
     }
 
-    /**
-     * 3. 임베딩 벡터 생성 (AI)
-     * POST /get_vector
-     */
-    public List<Double> getVector(String text) {
-        try {
-            return aiWebClient.post()
-                    .uri("/get_vector")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(Map.of("original", text))
-                    .retrieve()
-                    .bodyToMono(List.class)
-                    .block();
-        } catch (Exception e) {
-            log.error("벡터 생성 실패: {}", e.getMessage(), e);
-            throw new RuntimeException("벡터 생성 실패: " + e.getMessage());
-        }
-    }
+
 
     /**
      * 4. 설정집 충돌 이후 업로드
@@ -97,6 +80,47 @@ public class AiLorebookClient {
         } catch (Exception e) {
             log.error("충돌 해결 후 업로드 실패: {}", e.getMessage(), e);
             throw new RuntimeException("AI 서버 업로드 실패: " + e.getMessage());
+        }
+    }
+
+
+    /**
+     * [추가] 5. 수동 설정집 저장 (AI 서버로 위임)
+     * POST /manual_insert
+     */
+    public ManualOperationResponse manualInsert(ManualLorebookRequest request) {
+        log.info("AI 서버로 수동 저장 요청: WorkId={}, Keyword={}", request.getWorkId(), request.getKeyword());
+        try {
+            return aiWebClient.post()
+                    .uri("/lorebook_insert")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(request)
+                    .retrieve()
+                    .bodyToMono(ManualOperationResponse.class)
+                    .block();
+        } catch (Exception e) {
+            log.error("수동 저장 요청 실패: {}", e.getMessage(), e);
+            throw new RuntimeException("AI 서버 수동 저장 실패: " + e.getMessage());
+        }
+    }
+
+    /**
+     * [추가] 6. 수동 설정집 수정 (AI 서버로 위임)
+     * POST /manual_update
+     */
+    public ManualOperationResponse manualUpdate(ManualLorebookRequest request) {
+        log.info("AI 서버로 수동 수정 요청: LoreId={}, Keyword={}", request.getLoreId(), request.getKeyword());
+        try {
+            return aiWebClient.post()
+                    .uri("/lorebook_update")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(request)
+                    .retrieve()
+                    .bodyToMono(ManualOperationResponse.class)
+                    .block();
+        } catch (Exception e) {
+            log.error("수동 수정 요청 실패: {}", e.getMessage(), e);
+            throw new RuntimeException("AI 서버 수동 수정 실패: " + e.getMessage());
         }
     }
 
@@ -155,5 +179,42 @@ public class AiLorebookClient {
         private Object setting; // JSON 객체 전체를 담기 위해 Object 사용
     }
 
+    // [추가] 수동 저장/수정 요청 DTO
+    @Getter
+    @Setter
+    @Builder
+    public static class ManualLorebookRequest {
+        @JsonProperty("lore_id")
+        private Long loreId; // 수정 시에만 필요
+
+        @JsonProperty("universe_id")
+        private Long universeId; // 선택 사항
+
+        @JsonProperty("work_id")
+        private Long workId;
+
+        @JsonProperty("user_id")
+        private String userId;
+
+        @JsonProperty("keyword")
+        private String keyword;
+
+        @JsonProperty("category")
+        private String category;
+
+        @JsonProperty("ep_num")
+        private List<Integer> epNum; // 배열 형태
+
+        @JsonProperty("setting")
+        private Map<String, Object> setting; // 설정 내용 (JSON 객체)
+    }
+
+    // [추가] 수동 작업 응답 DTO
+    @Getter
+    @Setter
+    public static class ManualOperationResponse {
+        private String status;
+        private String message;
+    }
 
 }

@@ -19,7 +19,7 @@ public interface SettingBookService {
     AiLorebookClient.ManualComparisonResponse create(String userId, Long workId, SettingBookCreateRequestDto request);
 
     // 수정
-    void update(Long id, String userId, SettingBookUpdateRequestDto request);
+    void update(Long id, String userId, Long workId, SettingBookUpdateRequestDto request);
 
     // 삭제
     void delete(Long id);

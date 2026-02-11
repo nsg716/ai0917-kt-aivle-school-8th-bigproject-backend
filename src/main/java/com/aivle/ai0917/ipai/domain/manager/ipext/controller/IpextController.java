@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,7 +33,7 @@ public class IpextController {
     @GetMapping("/{managerId}")
     public ResponseEntity<Page<IpProposalResponseDto>> getProposalList(
             @PathVariable String managerId,
-            @PageableDefault(size = 10, sort = "createdAt") Pageable pageable) {
+            @PageableDefault(size = 10, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         // PageableDefault를 통해 sort, page 파라미터를 자동으로 처리합니다.
         // 예: ?page=0&size=10&sort=createdAt,desc
         return ResponseEntity.ok(ipextService.getProposalList(managerId, pageable));

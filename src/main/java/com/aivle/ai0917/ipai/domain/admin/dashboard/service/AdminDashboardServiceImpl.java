@@ -31,7 +31,8 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
     private final SystemMetricRepository systemMetricRepository;
     private final DeploymentInfoRepository deploymentInfoRepository;
     private final UserRepository userRepository;
-//    private final ArtworkRepository artworkRepository;
+    private final ArtworkRepository artworkRepository;
+    private final LorebookRepository lorebookRepository;
 
     @Override
     public DashboardPageResponseDto getDashboardPage() {
@@ -53,13 +54,15 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
         // 활성 세션 기준: Instant 대신 LocalDateTime 사용 (User 엔티티 필드 타입에 맞춤)
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(30);
         Integer activeSessions = userRepository.countActiveSessions(threshold);
-//        Long saveArtworks = artworkRepository.countSaveArtworks();
+        Long saveArtworks = artworkRepository.countSaveArtworks();
+        Long savedLorebooks = lorebookRepository.countSavedLorebooks();
 
         return DashboardSummaryResponseDto.builder()
                 .serverStatus(serverStatus)
                 .totalUsers(totalUsers)
                 .activeSessions(activeSessions)
-//                .savedArtworks(saveArtworks != null ? saveArtworks : 0L)
+                .savedArtworks(saveArtworks)
+                .savedLorebooks(savedLorebooks)
                 .build();
     }
 
