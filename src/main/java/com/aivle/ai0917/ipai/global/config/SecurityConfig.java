@@ -2,6 +2,7 @@ package com.aivle.ai0917.ipai.global.config;
 
 import com.aivle.ai0917.ipai.global.security.jwt.JwtAuthFilter;
 import com.aivle.ai0917.ipai.global.security.jwt.JwtProvider;
+import com.aivle.ai0917.ipai.global.security.token.TokenBlacklistService;
 import jakarta.servlet.ServletException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,7 +34,7 @@ import java.util.List;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, JwtProvider jwtProvider) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, JwtProvider jwtProvider, TokenBlacklistService tokenBlacklistService) throws Exception {
 
         http
                 // ✅ Security 레벨 CORS
@@ -132,7 +133,7 @@ public class SecurityConfig {
 
         // ✅ JWT 필터 (CSRF보다 먼저 돌게 하고 싶으면 CsrfFilter 앞에 둬도 됨)
         // 보통은 CSRF와 무관하지만, 확실히 하려면 아래처럼 CsrfFilter 앞에 둬도 OK
-        http.addFilterBefore(new JwtAuthFilter(jwtProvider), CsrfFilter.class);
+        http.addFilterBefore(new JwtAuthFilter(jwtProvider, tokenBlacklistService), CsrfFilter.class);
         // 또는 기존처럼:
         // http.addFilterBefore(new JwtAuthFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class);
 

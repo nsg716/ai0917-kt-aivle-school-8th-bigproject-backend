@@ -1,6 +1,6 @@
 package com.aivle.ai0917.ipai.global.security.jwt;
 
-
+import java.time.Duration;
 import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -57,6 +57,18 @@ public class JwtProvider {
                 .signWith(key)
                 .compact();
     }
+
+    public Duration remainingTtl(String token) {
+        Claims claims = parse(token);
+        Instant now = Instant.now();
+        Instant exp = claims.getExpiration().toInstant();
+
+        if (!exp.isAfter(now)) {
+            return Duration.ZERO;
+        }
+        return Duration.between(now, exp);
+    }
+
 
     /** 토큰 파싱(서명 검증 + 만료 검증 포함) */
     public Claims parse(String token) {
