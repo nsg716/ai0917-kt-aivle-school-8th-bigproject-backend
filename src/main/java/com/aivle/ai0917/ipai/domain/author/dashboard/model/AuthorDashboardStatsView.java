@@ -9,18 +9,20 @@ import org.hibernate.annotations.Immutable;
 
 @Entity
 @Immutable
-@Table(name = "author_dashboard_stats")
-@org.hibernate.annotations.Subselect(
-        "SELECT * FROM author_dashboard_stats"
-)
-@org.hibernate.annotations.Synchronize({})
+@Table(name = "author_dashboard_stats") // 1단계에서 생성한 뷰 이름
 @Getter
 public class AuthorDashboardStatsView {
+
     @Id
-    @Column(name = "author_integration_id")
+    @Column(name = "author_integration_id") // 뷰의 컬럼명
     private String authorId;
 
+    @Column(name = "ongoing_count")
     private long ongoingCount;
+
+    @Column(name = "setting_book_count")
     private long settingBookCount;
+
+    @Column(name = "completed_count")
     private long completedCount;
 }

@@ -18,16 +18,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation; // [중요] 추가
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+// [설정 1] 기본적으로 읽기 전용 트랜잭션을 사용하여 조회 성능 최적화
 @Transactional(readOnly = true)
 public class ManuscriptServiceImpl implements ManuscriptService {
 
@@ -42,7 +43,7 @@ public class ManuscriptServiceImpl implements ManuscriptService {
     @Override
     public Page<ManuscriptResponseDto> getManuscriptList(
             String userId, String title, String keyword, Pageable pageable) {
-
+        // 클래스 레벨의 readOnly = true가 적용됨
         Page<ManuscriptView> page = (keyword == null || keyword.isBlank())
                 ? manuscriptRepository.findByUserIdAndTitle(userId, title, pageable)
                 : manuscriptRepository.findByUserIdAndTitleAndTitleContaining(userId, title, keyword, pageable);
@@ -52,6 +53,7 @@ public class ManuscriptServiceImpl implements ManuscriptService {
 
     @Override
     public ManuscriptResponseDto getManuscriptDetail(Long id) {
+        // 클래스 레벨의 readOnly = true가 적용됨
         ManuscriptView manuscript = manuscriptRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("해당 원문을 찾을 수 없습니다. ID: " + id));
 
@@ -64,133 +66,43 @@ public class ManuscriptServiceImpl implements ManuscriptService {
         return new ManuscriptResponseDto(manuscript, txt);
     }
 
-//    @Override
-//    @Transactional
-//    public Long uploadManuscript(ManuscriptRequestDto request) {
-//
-//        log.info("원문 업로드 요청: userId={}, workId={}", request.getUserId(), request.getWorkId());
-//
-//        // [추가 로직] 회차(Episode)가 없거나 0이면 자동 증가 처리
-//        if (request.getEpisode() == null || request.getEpisode() == 0) {
-//            Integer maxEp = manuscriptRepository.findMaxEpisodeByWorkId(request.getWorkId());
-//            // 기존 원고가 없으면 1화, 있으면 +1화
-//            int nextEp = (maxEp == null) ? 1 : maxEp + 1;
-//            request.setEpisode(nextEp);
-//            log.info("회차 번호 자동 할당: {}화", nextEp);
-//        }
-//
-//        // 1. 글자 수 계산
-//        int wordCount = (request.getTxt() != null) ? request.getTxt().length() : 0;
-//
-//        // 2. 이미 존재하는 회차인지 확인 (Upsert 로직)
-//        Optional<ManuscriptView> existingOpt = manuscriptRepository.findByWorkIdAndEpisode(
-//                request.getWorkId(), request.getEpisode());
-//
-//        Long episodeId;
-//
-//        if (existingOpt.isPresent()) {
-//            // ==========================================
-//            // [CASE 1: 기존 원고 수정 (Update)]
-//            // 수정 시에는 '분석 중' 여부와 상관없이 덮어쓰기 허용 (또는 정책에 따라 다름)
-//            // 차단 로직을 타지 않음
-//            // ==========================================
-//            ManuscriptView existing = existingOpt.get();
-//            episodeId = existing.getId();
-//
-//            manuscriptCommandRepository.updateManuscript(
-//                    episodeId,
-//                    request.getSubtitle(),
-//                    request.getEpisode(),
-//                    null,
-//                    wordCount
-//            );
-//            log.info("기존 원문 덮어쓰기(Update): ID={}", episodeId);
-//
-//        } else {
-//            // ==========================================
-//            // [CASE 2: 신규 원고 등록 (Insert)]
-//            // 신규 등록일 때만 '이전 원고 분석 여부'를 체크하여 차단
-//            // ==========================================
-//            boolean hasPendingAnalysis = manuscriptRepository.existsByWorkIdAndIsReadOnlyFalse(request.getWorkId());
-//
-//            if (hasPendingAnalysis) {
-//                log.warn("업로드 차단: 작품 ID {}에 분석 중인(is_read_only=false) 에피소드가 존재합니다.", request.getWorkId());
-//                throw new IllegalStateException("이전 원고의 분석이 완료되지 않아 새로운 원고를 업로드할 수 없습니다.");
-//            }
-//
-//            manuscriptCommandRepository.insert(
-//                    request.getUserId(),
-//                    request.getWorkId(),
-//                    request.getTitle(),
-//                    request.getEpisode(),
-//                    request.getSubtitle(),
-//                    "pending",
-//                    wordCount
-//            );
-//
-//            // 방금 생성된 ID 조회 로직
-//            ManuscriptView savedManuscript = manuscriptRepository
-//                    .findByUserIdAndTitle(request.getUserId(), request.getTitle(), Pageable.unpaged())
-//                    .stream()
-//                    .filter(m -> m.getEpisode().equals(request.getEpisode())
-//                            && m.getWorkId().equals(request.getWorkId()))
-//                    .findFirst()
-//                    .orElseThrow(() -> new RuntimeException("저장된 원문을 찾을 수 없습니다."));
-//
-//            episodeId = savedManuscript.getId();
-//            log.info("신규 원문 등록(Insert): ID={}", episodeId);
-//        }
-//        // 3. AI 서버 전송 및 4. 경로 업데이트 (기존과 동일)
-//        String aiFilePath = aiManuscriptClient.saveNovelToAi(
-//                episodeId, request.getUserId(), request.getWorkId(), request.getEpisode(), request.getTxt());
-//        manuscriptCommandRepository.updateTxtPath(episodeId, aiFilePath);
-//        updateWorkStatusToOngoingIfNeeded(request.getWorkId());
-//
-//        return episodeId;
-//    }
 
-
+    // [설정 2] 쓰기 작업이므로 기본 트랜잭션(readOnly=false) 적용
     @Override
     @Transactional
     public Long createManuscript(ManuscriptRequestDto request) {
         log.info("원문 신규 생성 요청: userId={}, workId={}", request.getUserId(), request.getWorkId());
 
-        // 1. 회차(Episode)가 없거나 0이면 자동 증가 처리
         if (request.getEpisode() == null || request.getEpisode() == 0) {
             Integer maxEp = manuscriptRepository.findMaxEpisodeByWorkId(request.getWorkId());
             int nextEp = (maxEp == null) ? 1 : maxEp + 1;
             request.setEpisode(nextEp);
-            log.info("회차 번호 자동 할당: {}화", nextEp);
         }
 
-        // 2. 이미 존재하는 회차인지 확인 (중복 생성 방지)
         boolean exists = manuscriptRepository.findByWorkIdAndEpisode(
                 request.getWorkId(), request.getEpisode()).isPresent();
         if (exists) {
             throw new IllegalStateException("이미 존재하는 회차입니다. 수정(Update) API를 이용해주세요.");
         }
 
-        // 3. '이전 원고 분석 여부'를 체크하여 차단
         boolean hasPendingAnalysis = manuscriptRepository.existsByWorkIdAndIsReadOnlyFalse(request.getWorkId());
         if (hasPendingAnalysis) {
-            log.warn("업로드 차단: 작품 ID {}에 분석 중인(is_read_only=false) 에피소드가 존재합니다.", request.getWorkId());
+            log.warn("업로드 차단: 작품 ID {}에 분석 중인 에피소드가 존재합니다.", request.getWorkId());
             throw new IllegalStateException("이전 원고의 분석이 완료되지 않아 새로운 원고를 업로드할 수 없습니다.");
         }
 
         int wordCount = (request.getTxt() != null) ? request.getTxt().length() : 0;
 
-        // 4. DB Insert
         manuscriptCommandRepository.insert(
                 request.getUserId(),
                 request.getWorkId(),
                 request.getTitle(),
                 request.getEpisode(),
                 request.getSubtitle(),
-                "pending", // 초기값, 파일 저장 후 업데이트
+                "pending",
                 wordCount
         );
 
-        // 5. 방금 생성된 ID 조회 (ID를 리턴하기 위함)
         ManuscriptView savedManuscript = manuscriptRepository
                 .findByUserIdAndTitle(request.getUserId(), request.getTitle(), Pageable.unpaged())
                 .stream()
@@ -200,9 +112,9 @@ public class ManuscriptServiceImpl implements ManuscriptService {
                 .orElseThrow(() -> new RuntimeException("저장된 원문을 찾을 수 없습니다."));
 
         Long episodeId = savedManuscript.getId();
-        log.info("신규 원문 등록(Insert): ID={}", episodeId);
 
-        // 6. AI 서버 전송 및 경로 업데이트
+        // 주의: AI 파일 저장이 오래 걸릴 경우 여기서도 병목이 생길 수 있음.
+        // 하지만 create는 데이터 정합성이 중요하므로 Transaction 안에서 수행하는 것이 일반적임.
         processAiFileSave(episodeId, request);
         updateWorkStatusToOngoingIfNeeded(request.getWorkId());
 
@@ -215,32 +127,26 @@ public class ManuscriptServiceImpl implements ManuscriptService {
         log.info("원문 내용 수정 요청: userId={}, workId={}, ep={}",
                 request.getUserId(), request.getWorkId(), request.getEpisode());
 
-        // 1. 기존 원고 확인
         ManuscriptView existing = manuscriptRepository.findByWorkIdAndEpisode(
                         request.getWorkId(), request.getEpisode())
-                .orElseThrow(() -> new RuntimeException("수정할 원문이 존재하지 않습니다. 신규 등록(Insert) API를 이용해주세요."));
+                .orElseThrow(() -> new RuntimeException("수정할 원문이 존재하지 않습니다."));
 
         Long episodeId = existing.getId();
         int wordCount = (request.getTxt() != null) ? request.getTxt().length() : 0;
 
-        // 2. DB Update (텍스트 경로 등은 그대로, 메타데이터 일부와 글자수 등 갱신)
-        // 기존 insert/update 로직과 동일하게 commandRepository의 updateManuscript 사용
         manuscriptCommandRepository.updateManuscript(
                 episodeId,
-                request.getSubtitle(), // 소제목도 같이 수정 가능
+                request.getSubtitle(),
                 request.getEpisode(),
-                null, // txtPath는 아래 processAiFileSave에서 업데이트하므로 여기선 null (유지)
+                null,
                 wordCount
         );
-        log.info("기존 원문 덮어쓰기(Update): ID={}", episodeId);
 
-        // 3. AI 서버 전송 및 경로 업데이트
         processAiFileSave(episodeId, request);
 
         return episodeId;
     }
 
-    // [공통 메서드] AI 서버 저장 및 txt_path 업데이트
     private void processAiFileSave(Long episodeId, ManuscriptRequestDto request) {
         String aiFilePath = aiManuscriptClient.saveNovelToAi(
                 episodeId, request.getUserId(), request.getWorkId(), request.getEpisode(), request.getTxt());
@@ -249,12 +155,17 @@ public class ManuscriptServiceImpl implements ManuscriptService {
     }
 
 
+    // =========================================================================
+    // [설정 3] 핵심 수정 구간: AI 통신 시 DB 트랜잭션을 타지 않도록 설정 (타임아웃 해결)
+    // =========================================================================
+
     @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public AiAnalysisClient.CategoryExtractionResponse extractCategories(
             String userId, CategoryAnalysisRequestDto requestDto) {
 
-        log.info("카테고리 추출 시작: episodeId={}, workId={}, epNum={}",
-                requestDto.getEpisodeId(), requestDto.getWorkId(), requestDto.getEpNum());
+        log.info("카테고리 추출 시작(DB 트랜잭션 없음): workId={}, epNum={}",
+                requestDto.getWorkId(), requestDto.getEpNum());
 
         AiAnalysisClient.CategoryExtractionRequest clientRequest =
                 AiAnalysisClient.CategoryExtractionRequest.builder()
@@ -264,6 +175,7 @@ public class ManuscriptServiceImpl implements ManuscriptService {
                         .subtitle(requestDto.getSubtitle())
                         .build();
 
+        // 여기서 시간이 오래 걸려도 DB 커넥션은 점유하지 않음
         AiAnalysisClient.CategoryExtractionResponse response =
                 aiAnalysisClient.extractCategories(requestDto.getEpisodeId(), clientRequest);
 
@@ -272,13 +184,14 @@ public class ManuscriptServiceImpl implements ManuscriptService {
     }
 
     @Override
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public AiAnalysisClient.SettingConflictResponse checkSettingConflict(
             Long workId, String userId, AiAnalysisClient.CategoryExtractionResponse categories) {
 
-        log.info("설정집 충돌 검토 시작: workId={}, userId={}", workId, userId);
+        log.info("설정집 충돌 검토 시작(DB 트랜잭션 없음): workId={}", workId);
 
         Map<String, List<String>> checkData = new HashMap<>();
-
+        // ... (데이터 매핑 로직 동일) ...
         checkData.put("인물", categories.getCharacters() != null ? categories.getCharacters() : List.of());
         checkData.put("세계", categories.getWorldRules() != null ? categories.getWorldRules() : List.of());
         checkData.put("장소", categories.getLocations() != null ? categories.getLocations() : List.of());
@@ -290,9 +203,10 @@ public class ManuscriptServiceImpl implements ManuscriptService {
                 AiAnalysisClient.SettingConflictRequest.builder()
                         .check(checkData)
                         .workId(workId)
-                        .userId(userId) // [수정] user_id 추가
+                        .userId(userId)
                         .build();
 
+        // 여기서 30초 이상 걸려도 HikariPool 에러가 발생하지 않음
         AiAnalysisClient.SettingConflictResponse response =
                 aiAnalysisClient.checkSettingConflict(workId, request);
 
@@ -300,10 +214,11 @@ public class ManuscriptServiceImpl implements ManuscriptService {
         return response;
     }
 
+    // =========================================================================
+
     @Override
     @Transactional
     public void deleteManuscript(Long id) {
-        // 1. 삭제 대상 정보 조회
         ManuscriptView view = manuscriptRepository.findById(id).orElse(null);
 
         if (view == null) {
@@ -313,100 +228,58 @@ public class ManuscriptServiceImpl implements ManuscriptService {
         Long workId = view.getWorkId();
         Integer deletedEpNum = view.getEpisode();
 
-        // [추가] 2. 실제 파일 내용 비우기 (빈 문자열 "" 전송)
-        // DB의 txt_path는 유지되지만, 그 경로에 있는 파일 내용은 빈 깡통이 됩니다.
         try {
             aiManuscriptClient.saveNovelToAi(
-                    view.getId(),
-                    view.getUserId(),
-                    view.getWorkId(),
-                    view.getEpisode(),
-                    "" // 빈 문자열 전송 -> 파일 내용 삭제 효과
-            );
-            log.info("원문 파일 내용 초기화 완료 (ID: {})", id);
+                    view.getId(), view.getUserId(), view.getWorkId(), view.getEpisode(), "");
         } catch (Exception e) {
-            // 파일 비우기 실패해도 DB 삭제는 진행할지, 멈출지 결정해야 함.
-            // 보통은 로그만 남기고 DB 삭제 진행
-            log.warn("원문 파일 내용 비우기 실패 (ID: {}): {}", id, e.getMessage());
+            log.warn("원문 파일 내용 비우기 실패: {}", e.getMessage());
         }
 
-        // 3. DB Soft Delete (txt_path는 유지, word_count=0)
         int deleted = manuscriptCommandRepository.deleteById(id);
 
         if (deleted > 0) {
-            log.info("원문 삭제(Soft Delete) 완료. ID: {}, Ep: {}", id, deletedEpNum);
-
-            // 4. 번호 재정렬
             manuscriptCommandRepository.reorderEpisodesAfterDeletion(workId, deletedEpNum);
-            log.info("회차 재정렬 완료 (workId={}, deletedEp={})", workId, deletedEpNum);
-
-            // 5. 작품 상태 변경 체크
             revertWorkStatusToNewIfEmpty(workId);
         }
     }
 
     private void revertWorkStatusToNewIfEmpty(Long workId) {
-        // 남은 원문 개수 조회 (active_episodes_view 기준이므로 삭제된 건 카운트 안 됨)
         long count = manuscriptRepository.countByWorkId(workId);
-
         if (count == 0) {
-            // 상태를 NEW로 업데이트
             workCommandRepository.updateStatus(workId, WorkStatus.NEW.name());
-            log.info("남은 원문이 없어 작품 상태 변경 (ONGOING -> NEW): workId={}", workId);
         }
     }
 
-    // [추가] 작품 상태 변경 헬퍼 메서드
     private void updateWorkStatusToOngoingIfNeeded(Long workId) {
         Work work = workRepository.findById(workId)
-                .orElseThrow(() -> new RuntimeException("작품을 찾을 수 없습니다. WorkID: " + workId));
+                .orElseThrow(() -> new RuntimeException("작품을 찾을 수 없습니다."));
 
         if (work.getStatus() == WorkStatus.NEW) {
             workCommandRepository.updateStatus(workId, WorkStatus.ONGOING.name());
-            log.info("첫 원문 등록으로 작품 상태 변경 (NEW -> ONGOING): workId={}", workId);
         }
     }
+
     @Override
     @Transactional
     public void updateManuscript(Long id, ManuscriptUpdateRequestDto request) {
-        // 1. 기존 원문 조회
         ManuscriptView existing = manuscriptRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("수정할 원문을 찾을 수 없습니다. ID: " + id));
+                .orElseThrow(() -> new RuntimeException("수정할 원문을 찾을 수 없습니다."));
 
         String newTxtPath = null;
         Integer newWordCount = null;
 
-        // 2. 텍스트 내용 변경 요청이 있는 경우 처리
         if (request.getTxt() != null) {
-            // 회차(epNum)가 변경되었을 수 있으므로 request의 epNum을 우선 사용
             Integer targetEpisode = (request.getEpNum() != null) ? request.getEpNum() : existing.getEpisode();
-
             newTxtPath = aiManuscriptClient.saveNovelToAi(
-                    existing.getId(),
-                    existing.getUserId(),
-                    existing.getWorkId(),
-                    targetEpisode,
-                    request.getTxt()
-            );
-
+                    existing.getId(), existing.getUserId(), existing.getWorkId(), targetEpisode, request.getTxt());
             newWordCount = request.getTxt().length();
-            log.info("원문 텍스트 파일 갱신 및 경로 확보: {}", newTxtPath);
         }
 
-        // 3. DB 업데이트 실행 (5개 파라미터 버전 사용)
         int updated = manuscriptCommandRepository.updateManuscript(
-                id,
-                request.getSubtitle(),
-                request.getEpNum(),
-                newTxtPath,   // null이면 기존값 유지
-                newWordCount  // null이면 기존값 유지
-        );
+                id, request.getSubtitle(), request.getEpNum(), newTxtPath, newWordCount);
 
         if (updated == 0) {
             throw new RuntimeException("원문 수정에 실패했습니다.");
         }
-
-        log.info("원문 정보 수정 완료. ID={}, Subtitle={}, EpNum={}, TxtUpdated={}",
-                id, request.getSubtitle(), request.getEpNum(), (newTxtPath != null));
     }
 }
