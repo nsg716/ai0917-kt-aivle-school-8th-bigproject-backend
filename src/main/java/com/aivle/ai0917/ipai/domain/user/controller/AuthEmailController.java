@@ -1,6 +1,6 @@
 package com.aivle.ai0917.ipai.domain.user.controller;
 
-import com.aivle.ai0917.ipai.global.security.token.TokenBlacklistService;
+//import com.aivle.ai0917.ipai.global.security.token.TokenBlacklistService;
 import com.aivle.ai0917.ipai.global.security.jwt.CurrentUserId;
 import com.aivle.ai0917.ipai.domain.admin.access.model.UserRole;
 import com.aivle.ai0917.ipai.domain.user.service.UserService;
@@ -41,7 +41,7 @@ public class AuthEmailController {
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
     private final UserService userService;
-    private final TokenBlacklistService tokenBlacklistService;
+//    private final TokenBlacklistService tokenBlacklistService;
 
     @Value("${security.cookie.secure:false}")
     private boolean cookieSecure;
@@ -59,13 +59,14 @@ public class AuthEmailController {
 
     public AuthEmailController(UserRepository userRepository,
                                PasswordEncoder passwordEncoder,
-                               JwtProvider jwtProvider, UserService userService,
-                               TokenBlacklistService tokenBlacklistService) {
+                               JwtProvider jwtProvider, UserService userService
+//            , TokenBlacklistService tokenBlacklistService
+    ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtProvider = jwtProvider;
         this.userService = userService;
-        this.tokenBlacklistService = tokenBlacklistService;
+//        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     /**
@@ -143,7 +144,7 @@ public class AuthEmailController {
     @PostMapping("/logout")
 
         public Map<String, Object> logout(HttpServletRequest request, HttpServletResponse response) {
-        blacklistAccessToken(request);
+//        blacklistAccessToken(request);
         Long userId = resolveUserIdFromCookies(request);
             if (userId != null) {
                 userRepository.findById(userId).ifPresent(user -> {
@@ -230,7 +231,7 @@ public class AuthEmailController {
         @PostMapping("/deactivated")
         public Map<String, Object> withdraw(@CurrentUserId Long userId, HttpServletRequest request, HttpServletResponse response) {
 
-            blacklistAccessToken(request);
+//            blacklistAccessToken(request);
 
             // 1. DB 상태 변경 (Deactivated)
             userService.deactivated(userId);
@@ -248,19 +249,19 @@ public class AuthEmailController {
             return Map.of("ok", true, "message", "계정 탈퇴가 완료되었습니다.");
         }
 
-    private void blacklistAccessToken(HttpServletRequest request) {
-        String accessToken = readCookie(request, ACCESS_COOKIE);
-        if (accessToken == null || accessToken.isBlank()) {
-            return;
-        }
-
-        try {
-            Duration ttl = jwtProvider.remainingTtl(accessToken);
-            tokenBlacklistService.blacklist(accessToken, ttl);
-        } catch (Exception ignored) {
-            // already expired/invalid token
-        }
-    }
+//    private void blacklistAccessToken(HttpServletRequest request) {
+//        String accessToken = readCookie(request, ACCESS_COOKIE);
+//        if (accessToken == null || accessToken.isBlank()) {
+//            return;
+//        }
+//
+//        try {
+//            Duration ttl = jwtProvider.remainingTtl(accessToken);
+//            tokenBlacklistService.blacklist(accessToken, ttl);
+//        } catch (Exception ignored) {
+//            // already expired/invalid token
+//        }
+//    }
 
         private Long resolveUserIdFromCookies(HttpServletRequest request) {
             String accessToken = readCookie(request, ACCESS_COOKIE);

@@ -15,6 +15,7 @@ spring:
 
   # JPA 및 하이버네이트 설정 (기존 유지)
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: update
     show-sql: true

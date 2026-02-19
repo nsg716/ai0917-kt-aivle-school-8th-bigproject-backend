@@ -34,7 +34,9 @@ import java.util.List;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, JwtProvider jwtProvider, TokenBlacklistService tokenBlacklistService) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, JwtProvider jwtProvider
+//            , TokenBlacklistService tokenBlacklistService
+    ) throws Exception {
 
         http
                 // ✅ Security 레벨 CORS
@@ -45,7 +47,7 @@ public class SecurityConfig {
                                 .csrfTokenRepository(csrfTokenRepository())
                                 .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()) // ⭐ 핵심!
                                 .sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy())
-                        // ❌ /api/v1/csrf 는 ignore 하지 말자 (GET은 원래 검사 안 함)
+
 
 
                 )
@@ -65,6 +67,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").permitAll()
 
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh").permitAll()
+
                         // 공개 엔드포인트
                         .requestMatchers(
                                 "/api/v1/hello",
@@ -117,26 +120,13 @@ public class SecurityConfig {
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable());
 
-//        http.addFilterAfter(new OncePerRequestFilter() {
-//            @Override
-//            protected void doFilterInternal(
-//                    HttpServletRequest request,
-//                    HttpServletResponse response,
-//                    FilterChain filterChain
-//            ) throws ServletException, IOException {
-//                CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
-//                if (csrfToken != null) {
-//                    csrfToken.getToken();
-//                }
-//                filterChain.doFilter(request, response);
-//            }
-//        }, CsrfFilter.class);
+
 
         // ✅ JWT 필터 (CSRF보다 먼저 돌게 하고 싶으면 CsrfFilter 앞에 둬도 됨)
         // 보통은 CSRF와 무관하지만, 확실히 하려면 아래처럼 CsrfFilter 앞에 둬도 OK
-        http.addFilterBefore(new JwtAuthFilter(jwtProvider, tokenBlacklistService), CsrfFilter.class);
+//        http.addFilterBefore(new JwtAuthFilter(jwtProvider, tokenBlacklistService), CsrfFilter.class);
         // 또는 기존처럼:
-        // http.addFilterBefore(new JwtAuthFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class);
+         http.addFilterBefore(new JwtAuthFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -156,6 +146,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(List.of("https://d1mcrqfu7ki6bv.cloudfront.net"));
+//        config.setAllowedOriginPatterns(List.of("http://localhost:5173"));
         config.setAllowedMethods(List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
         config.setAllowCredentials(true);
 

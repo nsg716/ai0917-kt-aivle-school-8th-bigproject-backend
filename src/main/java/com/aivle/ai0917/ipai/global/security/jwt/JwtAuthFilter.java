@@ -1,6 +1,6 @@
 package com.aivle.ai0917.ipai.global.security.jwt;
 
-import com.aivle.ai0917.ipai.global.security.token.TokenBlacklistService;
+//import com.aivle.ai0917.ipai.global.security.token.TokenBlacklistService;
 
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -24,12 +24,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private static final String ACCESS_COOKIE = "accessToken";
     private final JwtProvider jwtProvider;
-    private final TokenBlacklistService tokenBlacklistService;
+//    private final TokenBlacklistService tokenBlacklistService;
 
 
-    public JwtAuthFilter(JwtProvider jwtProvider, TokenBlacklistService tokenBlacklistService) {
+    public JwtAuthFilter(JwtProvider jwtProvider
+//            , TokenBlacklistService tokenBlacklistService
+    ) {
         this.jwtProvider = jwtProvider;
-        this.tokenBlacklistService = tokenBlacklistService;
+//        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @Override
@@ -52,12 +54,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (tokenBlacklistService.isBlacklisted(token)) {
-            SecurityContextHolder.clearContext();
-            log.warn("[JwtAuthFilter] token is blacklisted");
-            filterChain.doFilter(request, response);
-            return;
-        }
+//        if (tokenBlacklistService.isBlacklisted(token)) {
+//            SecurityContextHolder.clearContext();
+//            log.warn("[JwtAuthFilter] token is blacklisted");
+//            filterChain.doFilter(request, response);
+//            return;
+//        }
 
         try {
             Claims claims = jwtProvider.parse(token);

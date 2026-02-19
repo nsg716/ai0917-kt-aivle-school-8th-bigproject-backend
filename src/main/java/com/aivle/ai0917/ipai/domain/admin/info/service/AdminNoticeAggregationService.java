@@ -250,7 +250,6 @@ public class AdminNoticeAggregationService {
                 : text;
     }
 
-    @Transactional(readOnly = true)
     public List<UnifiedAdminNoticeDto> getUnreadAdminNotices() {
         return adminNoticeRepository.findByIsReadFalseOrderByCreatedAtDesc()
                 .stream()
