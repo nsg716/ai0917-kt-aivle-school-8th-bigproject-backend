@@ -24,6 +24,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -224,7 +225,8 @@ public class IpextServiceImpl implements IpextService {
     }
 
     @Override
-    @Transactional
+    //createProposal이 여전히 트랜잭션 프록시 안에서 실행되어 트랜잭션이 계속 열리고 있어서 누수가 되고 있어서 명시적으로 중단하게끔 하여 누수 막음.
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public AiIpExtClient.ProposalResponse createProposal(IpProposalRequestDto request) {
         if (request.getManagerId() == null) {
             throw new IllegalArgumentException("Manager ID는 필수입니다.");
