@@ -1,6 +1,11 @@
 # AI Novel Platform Backend (IP-Ergo-Sum)
 AIVLE SCHOOL 8기 Big Project - AI 기반 웹소설 창작 및 IP 확장 지원 시스템 백엔드 리포지토리입니다.
 
+## 🔗 Repository Links
+[![Frontend](https://img.shields.io/badge/Frontend-Repository-blue?style=for-the-badge&logo=github)](https://github.com/Joyusong/ai0917-kt-aivle-shool-8th-bigproject-frontend)
+[![AI](https://img.shields.io/badge/AI-Repository-orange?style=for-the-badge&logo=github)](https://github.com/Joyusong/kt_aivle_school_8th_bigpriject-ai)
+
+
 ## 📖 프로젝트 개요
 
 이 프로젝트는 AI 기술을 활용하여 웹소설 창작을 지원하고, IP(Intellectual Property) 확장을 체계적으로 관리할 수 있는 통합 플랫폼의 백엔드 서버입니다. 관리자(Admin), 운영자(Manager), 작가(Author) 역할에 따른 API를 제공하며, 외부 AI 서버와의 통신을 통해 집필 보조, 설정집 관리, IP 확장 제안서 자동 생성 등의 기능을 지원합니다.
